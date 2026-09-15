@@ -12,6 +12,7 @@ import type {
 import {
   addCategory,
   addRatingEntry,
+  addSong,
   deleteCategoryValue,
   getCategories,
   getRatingScale,
@@ -40,6 +41,7 @@ import SortPanel from './screens/SortPanel';
 import Assessment from './screens/Assessment';
 import GapFill from './screens/GapFill';
 import Settings from './screens/Settings';
+import AddSong from './screens/AddSong';
 import SongTagEditor from './components/SongTagEditor';
 import './App.css';
 
@@ -51,7 +53,8 @@ type Screen =
   | 'results'
   | 'assessment'
   | 'gapfill'
-  | 'settings';
+  | 'settings'
+  | 'addsong';
 
 const IDLE_MS = 60 * 60 * 1000;
 const LAST_ACTIVE_KEY = 'songapp:lastActiveAt';
@@ -361,6 +364,17 @@ export default function App() {
     setRatingScale(updated);
   }
 
+  async function handleAddSong(input: {
+    title: string;
+    artist: string;
+    ultimateGuitarUrl: string;
+    tags: Record<string, TagValue>;
+  }) {
+    const updated = await addSong(input);
+    setSongs(updated);
+    goScreen('settings');
+  }
+
   if (screen === 'loading') {
     return <div className="screen loading">Loading your library…</div>;
   }
@@ -419,7 +433,12 @@ export default function App() {
           onUpdateRating={handleUpdateRating}
           onRemoveRating={handleRemoveRating}
           onSelectSong={handleSelectSong}
+          onOpenAddSong={() => goScreen('addsong')}
         />
+      )}
+
+      {screen === 'addsong' && (
+        <AddSong categories={categories} songs={songs} onSave={handleAddSong} onCancel={() => goScreen('settings')} />
       )}
 
       {screen === 'gapfill' && gapFillCategory && (

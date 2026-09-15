@@ -137,6 +137,22 @@ export async function updateSongTag(songId: string, categoryId: string, value: T
   return withComputedTags(mapSongRow(data));
 }
 
+export async function addSong(input: {
+  title: string;
+  artist: string;
+  ultimateGuitarUrl: string;
+  tags: Record<string, TagValue>;
+}): Promise<Song[]> {
+  const { error } = await getSupabaseClient().from('songs').insert({
+    title: input.title.trim(),
+    artist: input.artist.trim(),
+    ultimate_guitar_url: input.ultimateGuitarUrl.trim(),
+    tags: input.tags,
+  });
+  if (error) throw error;
+  return getSongs();
+}
+
 export async function updateSongUrl(songId: string, url: string): Promise<Song> {
   const { data, error } = await getSupabaseClient()
     .from('songs')

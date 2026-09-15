@@ -19,6 +19,7 @@ interface SettingsProps {
   onUpdateRating: (oldLabel: string, next: RatingScaleEntry) => void;
   onRemoveRating: (label: string) => void;
   onSelectSong: (song: Song) => void;
+  onOpenAddSong: () => void;
 }
 
 const SONG_SEARCH_LIMIT = 20;
@@ -46,6 +47,7 @@ export default function Settings({
   onUpdateRating,
   onRemoveRating,
   onSelectSong,
+  onOpenAddSong,
 }: SettingsProps) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [valuesModalCategoryId, setValuesModalCategoryId] = useState<string | null>(null);
@@ -108,6 +110,12 @@ export default function Settings({
       <button type="button" className="btn btn-ghost" onClick={onBack}>
         ← Back to results
       </button>
+
+      <section className="settings-section">
+        <button type="button" className="btn btn-primary" onClick={onOpenAddSong}>
+          + Add Song
+        </button>
+      </section>
 
       <section className="settings-section">
         <h2>Find a Song</h2>
