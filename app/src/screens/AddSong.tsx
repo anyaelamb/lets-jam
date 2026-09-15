@@ -93,7 +93,7 @@ export default function AddSong({ categories, songs, onSave, onCancel }: AddSong
           <h3>{category.name}</h3>
           <CategoryValueEditor
             category={category}
-            options={categoryValues(songs, category.id)}
+            options={categoryValues(songs, category.id, undefined, category.values)}
             bounds={categoryBounds(songs, category.id)}
             value={tags[category.id]}
             onChange={(value) => setTag(category.id, value)}

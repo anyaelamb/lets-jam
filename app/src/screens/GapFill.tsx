@@ -75,7 +75,7 @@ export default function GapFill({
     );
   }
 
-  const options = categoryValues(allSongs, category.id);
+  const options = categoryValues(allSongs, category.id, undefined, category.values);
   const bounds = categoryBounds(allSongs, category.id);
 
   function handleChange(next: TagValue | null) {

@@ -44,10 +44,18 @@ export default function ChipGroup({
     setAdding(false);
   }
 
+  // A value just picked via "+ Add new value" is committed to `selected`
+  // immediately, but the option list itself only refreshes once the parent
+  // re-fetches from the server — without this, the chip you just typed
+  // would vanish from view (though it's still selected) until that reload.
+  const displayOptions = selected.some((v) => !options.includes(v)) ? Array.from(new Set([...options, ...selected])) : options;
+
   return (
     <div className={`chip-group chip-group-${layout}`}>
-      {options.length === 0 && !onAddValue && <p className="chip-group-empty">{emptyLabel ?? 'No values yet'}</p>}
-      {options.map((option) => {
+      {displayOptions.length === 0 && !onAddValue && (
+        <p className="chip-group-empty">{emptyLabel ?? 'No values yet'}</p>
+      )}
+      {displayOptions.map((option) => {
         const active = selected.includes(option);
         return (
           <button

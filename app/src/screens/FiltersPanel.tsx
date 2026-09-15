@@ -55,7 +55,7 @@ export default function FiltersPanel({
               <h3>{category.name}</h3>
               <CategoryPicker
                 category={category}
-                options={categoryValues(songs, category.id, ratingScale)}
+                options={categoryValues(songs, category.id, ratingScale, category.values)}
                 bounds={categoryBounds(songs, category.id)}
                 filter={filters[category.id]}
                 onChange={(f) => onFilterChange(category.id, f)}

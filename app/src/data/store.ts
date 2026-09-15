@@ -27,6 +27,7 @@ function mapCategoryRow(row: any): Category {
     type: row.type,
     computed: row.computed,
     guidedPickerEnabled: row.guided_picker_enabled,
+    values: row.values ?? [],
   };
 }
 
@@ -225,7 +226,50 @@ export async function setCategoryGuidedPickerEnabled(categoryId: string, enabled
   return getCategories();
 }
 
-export async function renameCategoryValue(categoryId: string, oldValue: string, newValue: string): Promise<Song[]> {
+// Registers a value on the category itself (Settings' "Values" screen has no
+// song to attach a brand-new value to) — merged with whatever songs already
+// carry wherever categoryValues() is read, so a pre-registered value is
+// immediately selectable everywhere without requiring a song to be tagged
+// with it first.
+export async function addCategoryValue(categoryId: string, value: string): Promise<Category[]> {
+  const client = getSupabaseClient();
+  const trimmed = value.trim();
+  const { data: existing, error: fetchError } = await client
+    .from('categories')
+    .select('values')
+    .eq('id', categoryId)
+    .single();
+  if (fetchError) throw fetchError;
+
+  const nextValues = Array.from(new Set([...(existing.values ?? []), trimmed]));
+  const { error } = await client.from('categories').update({ values: nextValues }).eq('id', categoryId);
+  if (error) throw error;
+  return getCategories();
+}
+
+async function updateRegisteredValues(
+  client: ReturnType<typeof getSupabaseClient>,
+  categoryId: string,
+  transform: (values: string[]) => string[],
+) {
+  const { data: existing, error: fetchError } = await client
+    .from('categories')
+    .select('values')
+    .eq('id', categoryId)
+    .single();
+  if (fetchError) throw fetchError;
+  const { error } = await client
+    .from('categories')
+    .update({ values: transform(existing.values ?? []) })
+    .eq('id', categoryId);
+  if (error) throw error;
+}
+
+export async function renameCategoryValue(
+  categoryId: string,
+  oldValue: string,
+  newValue: string,
+): Promise<{ songs: Song[]; categories: Category[] }> {
   const client = getSupabaseClient();
   const { data, error } = await client.from('songs').select('id, tags');
   if (error) throw error;
@@ -248,10 +292,19 @@ export async function renameCategoryValue(categoryId: string, oldValue: string, 
   const results = await Promise.all(writes);
   const failed = results.find((r) => r.error);
   if (failed?.error) throw failed.error;
-  return getSongs();
+
+  await updateRegisteredValues(client, categoryId, (values) =>
+    values.map((v) => (v === oldValue ? newValue : v)),
+  );
+
+  const [songs, categories] = await Promise.all([getSongs(), getCategories()]);
+  return { songs, categories };
 }
 
-export async function deleteCategoryValue(categoryId: string, value: string): Promise<Song[]> {
+export async function deleteCategoryValue(
+  categoryId: string,
+  value: string,
+): Promise<{ songs: Song[]; categories: Category[] }> {
   const client = getSupabaseClient();
   const { data, error } = await client.from('songs').select('id, tags');
   if (error) throw error;
@@ -274,7 +327,11 @@ export async function deleteCategoryValue(categoryId: string, value: string): Pr
   const results = await Promise.all(writes);
   const failed = results.find((r) => r.error);
   if (failed?.error) throw failed.error;
-  return getSongs();
+
+  await updateRegisteredValues(client, categoryId, (values) => values.filter((v) => v !== value));
+
+  const [songs, categories] = await Promise.all([getSongs(), getCategories()]);
+  return { songs, categories };
 }
 
 // --- Settings: rating scale management ---

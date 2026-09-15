@@ -14,6 +14,7 @@ interface SettingsProps {
   onToggleGuidedPicker: (id: string, enabled: boolean) => void;
   onRenameValue: (categoryId: string, oldValue: string, newValue: string) => void;
   onDeleteValue: (categoryId: string, value: string) => void;
+  onAddValue: (categoryId: string, value: string) => void;
   onStartGapFill: (categoryId: string) => void;
   onAddRating: (label: string, intervalDays: number) => void;
   onUpdateRating: (oldLabel: string, next: RatingScaleEntry) => void;
@@ -42,6 +43,7 @@ export default function Settings({
   onToggleGuidedPicker,
   onRenameValue,
   onDeleteValue,
+  onAddValue,
   onStartGapFill,
   onAddRating,
   onUpdateRating,
@@ -342,6 +344,7 @@ export default function Settings({
           songs={songs}
           onRename={(oldValue, newValue) => onRenameValue(valuesModalCategory.id, oldValue, newValue)}
           onDelete={(value) => onDeleteValue(valuesModalCategory.id, value)}
+          onAdd={(value) => onAddValue(valuesModalCategory.id, value)}
           onClose={() => setValuesModalCategoryId(null)}
         />
       )}

@@ -21,8 +21,13 @@ export function categoryBounds(songs: Song[], categoryId: string): [number, numb
 // rather than breaking the ordering.
 const AGE_GROUP_ORDER = ['Kiddos', 'Gen Alpha', 'Millennials', 'GenX Plus'];
 
-export function categoryValues(songs: Song[], categoryId: string, ratingScale?: RatingScaleEntry[]): string[] {
-  const set = new Set<string>();
+export function categoryValues(
+  songs: Song[],
+  categoryId: string,
+  ratingScale?: RatingScaleEntry[],
+  registeredValues?: string[],
+): string[] {
+  const set = new Set<string>(registeredValues ?? []);
   for (const song of songs) {
     const v = song.tags[categoryId];
     if (typeof v === 'string') set.add(v);

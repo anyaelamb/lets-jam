@@ -7,6 +7,7 @@ interface ManageValuesProps {
   songs: Song[];
   onRename: (oldValue: string, newValue: string) => void;
   onDelete: (value: string) => void;
+  onAdd: (value: string) => void;
   onClose: () => void;
 }
 
@@ -17,8 +18,9 @@ function songsWithValue(songs: Song[], categoryId: string, value: string): numbe
   }).length;
 }
 
-export default function ManageValues({ category, songs, onRename, onDelete, onClose }: ManageValuesProps) {
-  const values = categoryValues(songs, category.id);
+export default function ManageValues({ category, songs, onRename, onDelete, onAdd, onClose }: ManageValuesProps) {
+  const values = categoryValues(songs, category.id, undefined, category.values);
+  const [newValue, setNewValue] = useState('');
 
   function handleDelete(value: string) {
     const count = songsWithValue(songs, category.id, value);
@@ -26,6 +28,13 @@ export default function ManageValues({ category, songs, onRename, onDelete, onCl
       `Delete "${value}" from ${category.name}? It'll be removed from ${count} song${count === 1 ? '' : 's'} — this can't be undone.`,
     );
     if (confirmed) onDelete(value);
+  }
+
+  function handleAdd() {
+    const trimmed = newValue.trim();
+    if (!trimmed || values.includes(trimmed)) return;
+    onAdd(trimmed);
+    setNewValue('');
   }
 
   return (
@@ -39,11 +48,25 @@ export default function ManageValues({ category, songs, onRename, onDelete, onCl
         </header>
         <div className="modal-body">
           {values.length === 0 && (
-            <p className="modal-subtitle">No values yet — they'll show up here once a song is tagged.</p>
+            <p className="modal-subtitle">No values yet — add one below, or tag a song with a new value.</p>
           )}
           {values.map((value) => (
             <ValueRow key={value} value={value} onRename={onRename} onDelete={handleDelete} />
           ))}
+          <div className="settings-add-row">
+            <input
+              className="settings-add-name"
+              placeholder="New value"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdd();
+              }}
+            />
+            <button type="button" className="btn btn-primary" onClick={handleAdd}>
+              Add
+            </button>
+          </div>
         </div>
         <footer className="modal-footer">
           <button type="button" className="btn btn-primary" onClick={onClose}>

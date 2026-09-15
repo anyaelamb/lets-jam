@@ -31,7 +31,7 @@ export default function GuidedPicker({
 
   if (!category) return null;
 
-  const options = categoryValues(songs, category.id, ratingScale);
+  const options = categoryValues(songs, category.id, ratingScale, category.values);
   const bounds = categoryBounds(songs, category.id);
 
   return (

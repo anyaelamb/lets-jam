@@ -57,7 +57,7 @@ export default function SongTagEditor({
                 <h3>{category.name}</h3>
                 <CategoryValueEditor
                   category={category}
-                  options={categoryValues(allSongs, category.id)}
+                  options={categoryValues(allSongs, category.id, undefined, category.values)}
                   bounds={categoryBounds(allSongs, category.id)}
                   value={song.tags[category.id]}
                   onChange={(value) => onUpdateTag(category.id, value)}

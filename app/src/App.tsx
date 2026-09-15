@@ -11,6 +11,7 @@ import type {
 } from './types';
 import {
   addCategory,
+  addCategoryValue,
   addRatingEntry,
   addSong,
   deleteCategoryValue,
@@ -339,13 +340,20 @@ export default function App() {
   }
 
   async function handleRenameValue(categoryId: string, oldValue: string, newValue: string) {
-    const updated = await renameCategoryValue(categoryId, oldValue, newValue);
-    setSongs(updated);
+    const result = await renameCategoryValue(categoryId, oldValue, newValue);
+    setSongs(result.songs);
+    setCategories(result.categories);
   }
 
   async function handleDeleteValue(categoryId: string, value: string) {
-    const updated = await deleteCategoryValue(categoryId, value);
-    setSongs(updated);
+    const result = await deleteCategoryValue(categoryId, value);
+    setSongs(result.songs);
+    setCategories(result.categories);
+  }
+
+  async function handleAddCategoryValue(categoryId: string, value: string) {
+    const updated = await addCategoryValue(categoryId, value);
+    setCategories(updated);
   }
 
   async function handleAddRating(label: string, intervalDays: number) {
@@ -428,6 +436,7 @@ export default function App() {
           onToggleGuidedPicker={handleToggleGuidedPicker}
           onRenameValue={handleRenameValue}
           onDeleteValue={handleDeleteValue}
+          onAddValue={handleAddCategoryValue}
           onStartGapFill={startGapFill}
           onAddRating={handleAddRating}
           onUpdateRating={handleUpdateRating}
