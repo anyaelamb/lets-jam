@@ -18,6 +18,8 @@ import {
   getCategories,
   getRatingScale,
   getSongs,
+  loadCachedSnapshot,
+  pendingWriteCount,
   rateSong,
   removeRatingEntry,
   renameCategory,
@@ -26,10 +28,12 @@ import {
   retireCategory,
   setCategoryGuidedPickerEnabled,
   setMemorized,
+  syncPendingWrites,
   updateRatingEntry,
   updateSongTag,
   updateSongUrl,
 } from './data/store';
+import { isNetworkError } from './data/offlineCache';
 import { initSupabaseClient } from './data/supabaseClient';
 import { filterSongs, sortSongs } from './lib/filtering';
 import { buildGapFillQueue, gapFillAt, gapFillTotal, type GapFillMode, type GapFillQueue } from './lib/gapfill';
@@ -123,6 +127,13 @@ export default function App() {
   const [gapFillIndex, setGapFillIndex] = useState(0);
   const [gapFillMode, setGapFillMode] = useState<GapFillMode>('gaps');
 
+  // isOffline: last load/reconnect attempt used the cached snapshot instead
+  // of a live fetch. offlineUnavailable: never been online, so there's no
+  // cache to fall back to at all — a distinct dead-end from plain loading.
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [offlineUnavailable, setOfflineUnavailable] = useState(false);
+  const [pendingCount, setPendingCount] = useState(pendingWriteCount);
+
   // Captured once at first render, before any effect can mark the session
   // active — otherwise StrictMode's double-invoked mount effect would see
   // the timestamp its own first run just wrote and always "resume".
@@ -130,12 +141,34 @@ export default function App() {
   const [initialPassphrase] = useState(loadStoredPassphrase);
 
   async function loadAppData() {
-    const [s, c, r] = await Promise.all([getSongs(), getCategories(), getRatingScale()]);
-    setSongs(s);
-    setCategories(c);
-    setRatingScale(r);
-    setScreen(initialResume ? 'results' : 'splash');
-    markActive();
+    try {
+      const [s, c, r] = await Promise.all([getSongs(), getCategories(), getRatingScale()]);
+      setSongs(s);
+      setCategories(c);
+      setRatingScale(r);
+      setIsOffline(false);
+      setOfflineUnavailable(false);
+      setScreen(initialResume ? 'results' : 'splash');
+      markActive();
+      if (pendingWriteCount() > 0) {
+        const { remaining } = await syncPendingWrites();
+        setPendingCount(remaining);
+        setSongs(await getSongs());
+      }
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      const cached = loadCachedSnapshot();
+      if (!cached) {
+        setOfflineUnavailable(true);
+        return;
+      }
+      setSongs(cached.songs);
+      setCategories(cached.categories);
+      setRatingScale(cached.ratingScale);
+      setIsOffline(true);
+      setScreen(initialResume ? 'results' : 'splash');
+      markActive();
+    }
   }
 
   useEffect(() => {
@@ -150,24 +183,62 @@ export default function App() {
 
   // A wrong passphrase isn't rejected with an error — RLS just filters every
   // row to nothing — so "did this work" is judged by whether categories (a
-  // table that's never legitimately empty) actually came back.
-  async function handlePassphraseSubmit(passphrase: string): Promise<boolean> {
+  // table that's never legitimately empty) actually came back. This check
+  // must stay network-only (no cache fallback) — otherwise typing any
+  // string while genuinely offline would appear to succeed against stale
+  // data left over from a previous, different passphrase.
+  async function handlePassphraseSubmit(passphrase: string): Promise<string | null> {
     initSupabaseClient(passphrase);
     try {
       const categoriesCheck = await getCategories();
-      if (categoriesCheck.length === 0) return false;
-    } catch {
-      return false;
+      if (categoriesCheck.length === 0) return "That passphrase didn't work — try again.";
+    } catch (err) {
+      if (isNetworkError(err)) return "Can't verify right now — check your connection and try again.";
+      return "That passphrase didn't work — try again.";
     }
     storePassphrase(passphrase);
     await loadAppData();
-    return true;
+    return null;
   }
 
   useEffect(() => {
     const interval = setInterval(markActive, 30_000);
     return () => clearInterval(interval);
   }, []);
+
+  // Once back online, flush any ratings/memorized-toggles made while
+  // offline, then reconcile with the server (another device may have
+  // changed things meanwhile).
+  useEffect(() => {
+    async function handleOnline() {
+      const { remaining } = await syncPendingWrites();
+      setPendingCount(remaining);
+      try {
+        setSongs(await getSongs());
+      } catch {
+        return; // "online" event fired but a real request still fails — stay offline
+      }
+      setIsOffline(false);
+    }
+    function handleOffline() {
+      setIsOffline(true);
+    }
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  async function runOrAlertOffline(action: () => Promise<void>) {
+    try {
+      await action();
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      window.alert("You're offline — this needs a connection.");
+    }
+  }
 
   function goScreen(next: Screen) {
     markActive();
@@ -249,6 +320,7 @@ export default function App() {
     if (!activeSong) return;
     const updated = await rateSong(activeSong.id, label);
     applySongUpdate(updated);
+    setPendingCount(pendingWriteCount());
     goScreen('results');
   }
 
@@ -260,16 +332,21 @@ export default function App() {
     if (!activeSong) return;
     const updated = await setMemorized(activeSong.id, memorized);
     applySongUpdate(updated);
+    setPendingCount(pendingWriteCount());
   }
 
   async function handleUpdateTag(songId: string, categoryId: string, value: TagValue | null) {
-    const updated = await updateSongTag(songId, categoryId, value);
-    applySongUpdate(updated);
+    await runOrAlertOffline(async () => {
+      const updated = await updateSongTag(songId, categoryId, value);
+      applySongUpdate(updated);
+    });
   }
 
   async function handleUpdateUrl(songId: string, url: string) {
-    const updated = await updateSongUrl(songId, url);
-    applySongUpdate(updated);
+    await runOrAlertOffline(async () => {
+      const updated = await updateSongUrl(songId, url);
+      applySongUpdate(updated);
+    });
   }
 
   function startGapFill(categoryId: string) {
@@ -315,61 +392,59 @@ export default function App() {
   }
 
   async function handleAddCategory(name: string, type: CategoryType) {
-    const updated = await addCategory(name, type);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await addCategory(name, type)));
   }
 
   async function handleRenameCategory(id: string, name: string) {
-    const updated = await renameCategory(id, name);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await renameCategory(id, name)));
   }
 
   async function handleRetireCategory(id: string) {
-    const updated = await retireCategory(id);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await retireCategory(id)));
   }
 
   async function handleReorderCategories(orderedIds: string[]) {
-    const updated = await reorderCategories(orderedIds);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await reorderCategories(orderedIds)));
   }
 
   async function handleToggleGuidedPicker(id: string, enabled: boolean) {
-    const updated = await setCategoryGuidedPickerEnabled(id, enabled);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await setCategoryGuidedPickerEnabled(id, enabled)));
   }
 
   async function handleRenameValue(categoryId: string, oldValue: string, newValue: string) {
-    const result = await renameCategoryValue(categoryId, oldValue, newValue);
-    setSongs(result.songs);
-    setCategories(result.categories);
+    await runOrAlertOffline(async () => {
+      const result = await renameCategoryValue(categoryId, oldValue, newValue);
+      setSongs(result.songs);
+      setCategories(result.categories);
+    });
   }
 
   async function handleDeleteValue(categoryId: string, value: string) {
-    const result = await deleteCategoryValue(categoryId, value);
-    setSongs(result.songs);
-    setCategories(result.categories);
+    await runOrAlertOffline(async () => {
+      const result = await deleteCategoryValue(categoryId, value);
+      setSongs(result.songs);
+      setCategories(result.categories);
+    });
   }
 
   async function handleAddCategoryValue(categoryId: string, value: string) {
-    const updated = await addCategoryValue(categoryId, value);
-    setCategories(updated);
+    await runOrAlertOffline(async () => setCategories(await addCategoryValue(categoryId, value)));
   }
 
   async function handleAddRating(label: string, intervalDays: number) {
-    const updated = await addRatingEntry(label, intervalDays);
-    setRatingScale(updated);
+    await runOrAlertOffline(async () => setRatingScale(await addRatingEntry(label, intervalDays)));
   }
 
   async function handleUpdateRating(oldLabel: string, next: RatingScaleEntry) {
-    const result = await updateRatingEntry(oldLabel, next);
-    setRatingScale(result.ratingScale);
-    setSongs(result.songs);
+    await runOrAlertOffline(async () => {
+      const result = await updateRatingEntry(oldLabel, next);
+      setRatingScale(result.ratingScale);
+      setSongs(result.songs);
+    });
   }
 
   async function handleRemoveRating(label: string) {
-    const updated = await removeRatingEntry(label);
-    setRatingScale(updated);
+    await runOrAlertOffline(async () => setRatingScale(await removeRatingEntry(label)));
   }
 
   async function handleAddSong(input: {
@@ -378,17 +453,32 @@ export default function App() {
     ultimateGuitarUrl: string;
     tags: Record<string, TagValue>;
   }) {
-    const updated = await addSong(input);
-    setSongs(updated);
-    goScreen('settings');
+    await runOrAlertOffline(async () => {
+      setSongs(await addSong(input));
+      goScreen('settings');
+    });
   }
 
   if (screen === 'loading') {
+    if (offlineUnavailable) {
+      return (
+        <div className="screen loading">
+          No connection, and nothing saved yet to work from offline — connect once to load your library.
+        </div>
+      );
+    }
     return <div className="screen loading">Loading your library…</div>;
   }
 
   return (
     <div className="app">
+      {(isOffline || pendingCount > 0) && (
+        <div className="offline-banner">
+          {isOffline ? 'Offline — showing saved data' : 'Back online'}
+          {pendingCount > 0 && ` · ${pendingCount} rating${pendingCount === 1 ? '' : 's'} waiting to sync`}
+        </div>
+      )}
+
       {screen === 'passphrase' && <PassphraseGate onSubmit={handlePassphraseSubmit} />}
 
       {screen === 'splash' && <Splash onFindSong={startGuidedPicker} onShowAll={showAllSongs} />}

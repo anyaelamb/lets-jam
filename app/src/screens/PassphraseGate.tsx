@@ -1,22 +1,22 @@
 import { useState, type FormEvent } from 'react';
 
 interface PassphraseGateProps {
-  onSubmit: (passphrase: string) => Promise<boolean>;
+  onSubmit: (passphrase: string) => Promise<string | null>;
 }
 
 export default function PassphraseGate({ onSubmit }: PassphraseGateProps) {
   const [value, setValue] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!value.trim() || checking) return;
     setChecking(true);
-    setError(false);
-    const ok = await onSubmit(value.trim());
+    setError(null);
+    const errorMessage = await onSubmit(value.trim());
     setChecking(false);
-    if (!ok) setError(true);
+    setError(errorMessage);
   }
 
   return (
@@ -37,7 +37,7 @@ export default function PassphraseGate({ onSubmit }: PassphraseGateProps) {
             {checking ? 'Checking…' : 'Unlock'}
           </button>
         </form>
-        {error && <p className="passphrase-error">That passphrase didn't work — try again.</p>}
+        {error && <p className="passphrase-error">{error}</p>}
       </div>
     </div>
   );

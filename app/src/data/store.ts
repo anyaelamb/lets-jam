@@ -1,5 +1,14 @@
 import type { Category, CategoryType, RatingScaleEntry, Song, TagValue } from '../types';
 import { getSupabaseClient } from './supabaseClient';
+import {
+  enqueuePendingWrite,
+  getPendingWrites,
+  isNetworkError,
+  loadSnapshot,
+  removePendingWrite,
+  saveSnapshot,
+  updateCachedSong,
+} from './offlineCache';
 
 // Supabase-backed implementation of the data-access layer. Every screen
 // talks to this module only — this file is the entire surface area that
@@ -81,16 +90,37 @@ function slugify(name: string, existingIds: string[]): string {
   return id;
 }
 
+// A cache-write-through on every successful read keeps the offline snapshot
+// warm without a separate sync step — whatever the app last saw online is
+// what it falls back to if the next load has no connection.
+function cachePatch(patch: Partial<{ songs: Song[]; categories: Category[]; ratingScale: RatingScaleEntry[] }>) {
+  const current = loadSnapshot();
+  saveSnapshot({
+    songs: current?.songs ?? [],
+    categories: current?.categories ?? [],
+    ratingScale: current?.ratingScale ?? [],
+    ...patch,
+  });
+}
+
+export function loadCachedSnapshot() {
+  return loadSnapshot();
+}
+
 export async function getSongs(): Promise<Song[]> {
   const { data, error } = await getSupabaseClient().from('songs').select('*');
   if (error) throw error;
-  return data.map(mapSongRow).map(withComputedTags);
+  const songs = data.map(mapSongRow).map(withComputedTags);
+  cachePatch({ songs });
+  return songs;
 }
 
 export async function getCategories(): Promise<Category[]> {
   const { data, error } = await getSupabaseClient().from('categories').select('*').order('sort_order');
   if (error) throw error;
-  return data.map(mapCategoryRow);
+  const categories = data.map(mapCategoryRow);
+  cachePatch({ categories });
+  return categories;
 }
 
 export async function getRatingScale(): Promise<RatingScaleEntry[]> {
@@ -99,10 +129,12 @@ export async function getRatingScale(): Promise<RatingScaleEntry[]> {
     .select('*')
     .order('interval_days', { ascending: false });
   if (error) throw error;
-  return data.map(mapRatingRow);
+  const ratingScale = data.map(mapRatingRow);
+  cachePatch({ ratingScale });
+  return ratingScale;
 }
 
-export async function rateSong(songId: string, ratingLabel: string): Promise<Song> {
+async function performRate(songId: string, ratingLabel: string): Promise<Song> {
   const { data, error } = await getSupabaseClient()
     .from('songs')
     .update({ last_played_at: new Date().toISOString(), last_rating_label: ratingLabel })
@@ -113,7 +145,7 @@ export async function rateSong(songId: string, ratingLabel: string): Promise<Son
   return withComputedTags(mapSongRow(data));
 }
 
-export async function setMemorized(songId: string, memorized: boolean): Promise<Song> {
+async function performSetMemorized(songId: string, memorized: boolean): Promise<Song> {
   const { data, error } = await getSupabaseClient()
     .from('songs')
     .update({ memorized })
@@ -122,6 +154,77 @@ export async function setMemorized(songId: string, memorized: boolean): Promise<
     .single();
   if (error) throw error;
   return withComputedTags(mapSongRow(data));
+}
+
+function optimisticSong(songId: string, patch: Partial<Song>): Song | null {
+  const cached = loadSnapshot();
+  const existing = cached?.songs.find((s) => s.id === songId);
+  if (!existing) return null;
+  const updated = withComputedTags({ ...existing, ...patch });
+  updateCachedSong(updated);
+  return updated;
+}
+
+export async function rateSong(songId: string, ratingLabel: string): Promise<Song> {
+  try {
+    const song = await performRate(songId, ratingLabel);
+    updateCachedSong(song);
+    return song;
+  } catch (err) {
+    if (!isNetworkError(err)) throw err;
+    const optimistic = optimisticSong(songId, {
+      lastPlayedAt: new Date().toISOString(),
+      lastRatingLabel: ratingLabel,
+    });
+    if (!optimistic) throw err;
+    enqueuePendingWrite({ type: 'rate', songId, ratingLabel });
+    return optimistic;
+  }
+}
+
+export async function setMemorized(songId: string, memorized: boolean): Promise<Song> {
+  try {
+    const song = await performSetMemorized(songId, memorized);
+    updateCachedSong(song);
+    return song;
+  } catch (err) {
+    if (!isNetworkError(err)) throw err;
+    const optimistic = optimisticSong(songId, { memorized });
+    if (!optimistic) throw err;
+    enqueuePendingWrite({ type: 'memorized', songId, memorized });
+    return optimistic;
+  }
+}
+
+// Replays queued offline ratings/memorized-toggles in order. Stops at the
+// first failure (still offline) rather than reordering — the rest stay
+// queued for the next attempt.
+export async function syncPendingWrites(): Promise<{ synced: number; remaining: number }> {
+  const queue = getPendingWrites();
+  let synced = 0;
+  for (const op of queue) {
+    try {
+      if (op.type === 'rate') {
+        const song = await performRate(op.songId, op.ratingLabel);
+        updateCachedSong(song);
+      } else {
+        const song = await performSetMemorized(op.songId, op.memorized);
+        updateCachedSong(song);
+      }
+      removePendingWrite(op.id);
+      synced += 1;
+    } catch (err) {
+      if (isNetworkError(err)) break;
+      // A non-network failure (e.g. the song was deleted) — drop it rather
+      // than block every write behind it forever.
+      removePendingWrite(op.id);
+    }
+  }
+  return { synced, remaining: getPendingWrites().length };
+}
+
+export function pendingWriteCount(): number {
+  return getPendingWrites().length;
 }
 
 // "Memorized" is backed by the real memorized boolean, not a raw tag —
