@@ -1,0 +1,7 @@
+# One-off admin scripts hold the service_role key — never commit it.
+scripts/.env
+scripts/.env.*
+!scripts/.env.example
+scripts/node_modules
+
+.DS_Store
