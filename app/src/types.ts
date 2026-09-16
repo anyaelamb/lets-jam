@@ -32,6 +32,11 @@ export interface Song {
   lastPlayedAt: string | null;
   lastRatingLabel: string | null;
   tags: Record<string, TagValue>;
+  // Category ids the song has been deliberately marked as not applying to
+  // (from Gap-Fill's "Doesn't apply" option) — the tag itself stays blank
+  // (so Filters/"Include untagged" behavior is unaffected), this only tells
+  // Gap-Fill to stop offering the song for that category.
+  notApplicableCategories: string[];
 }
 
 export interface CategoryFilter {

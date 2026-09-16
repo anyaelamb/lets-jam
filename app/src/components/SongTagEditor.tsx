@@ -15,6 +15,7 @@ interface SongTagEditorProps {
   onToggleMemorized: (memorized: boolean) => void;
   onRate: (label: string) => void;
   onDelete: () => void;
+  onClearNotApplicable: (categoryId: string) => void;
 }
 
 export default function SongTagEditor({
@@ -28,6 +29,7 @@ export default function SongTagEditor({
   onToggleMemorized,
   onRate,
   onDelete,
+  onClearNotApplicable,
 }: SongTagEditorProps) {
   const [url, setUrl] = useState(song.ultimateGuitarUrl);
 
@@ -95,6 +97,18 @@ export default function SongTagEditor({
             .map((category) => (
               <section key={category.id} className="tag-editor-row">
                 <h3>{category.name}</h3>
+                {song.notApplicableCategories.includes(category.id) && (
+                  <p className="modal-subtitle">
+                    Marked as not applicable to this song —{' '}
+                    <button
+                      type="button"
+                      className="inline-link"
+                      onClick={() => onClearNotApplicable(category.id)}
+                    >
+                      undo
+                    </button>
+                  </p>
+                )}
                 <CategoryValueEditor
                   category={category}
                   options={categoryValues(allSongs, category.id, undefined, category.values)}

@@ -25,6 +25,7 @@ function mapSongRow(row: any): Song {
     lastPlayedAt: row.last_played_at,
     lastRatingLabel: row.last_rating_label,
     tags: row.tags ?? {},
+    notApplicableCategories: row.not_applicable_categories ?? [],
   };
 }
 
@@ -239,6 +240,29 @@ export async function updateSongTag(songId: string, categoryId: string, value: T
       : await client.rpc('update_song_tag', { p_song_id: songId, p_category_id: categoryId, p_value: value });
   if (error) throw error;
   return withComputedTags(mapSongRow(data));
+}
+
+async function setNotApplicableCategories(songId: string, next: string[]): Promise<Song> {
+  const { data, error } = await getSupabaseClient()
+    .from('songs')
+    .update({ not_applicable_categories: next })
+    .eq('id', songId)
+    .select()
+    .single();
+  if (error) throw error;
+  const song = withComputedTags(mapSongRow(data));
+  updateCachedSong(song);
+  return song;
+}
+
+export async function markCategoryNotApplicable(song: Song, categoryId: string): Promise<Song> {
+  const next = Array.from(new Set([...song.notApplicableCategories, categoryId]));
+  return setNotApplicableCategories(song.id, next);
+}
+
+export async function clearNotApplicable(song: Song, categoryId: string): Promise<Song> {
+  const next = song.notApplicableCategories.filter((id) => id !== categoryId);
+  return setNotApplicableCategories(song.id, next);
 }
 
 export async function addSong(input: {

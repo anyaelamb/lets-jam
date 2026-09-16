@@ -14,12 +14,14 @@ import {
   addCategoryValue,
   addRatingEntry,
   addSong,
+  clearNotApplicable,
   deleteCategoryValue,
   deleteSong,
   getCategories,
   getRatingScale,
   getSongs,
   loadCachedSnapshot,
+  markCategoryNotApplicable,
   pendingWriteCount,
   rateSong,
   removeRatingEntry,
@@ -401,6 +403,13 @@ export default function App() {
     });
   }
 
+  async function handleClearNotApplicable(song: Song, categoryId: string) {
+    await runOrAlertOffline(async () => {
+      const updated = await clearNotApplicable(song, categoryId);
+      applySongUpdate(updated);
+    });
+  }
+
   function startGapFill(categoryId: string) {
     setGapFillMode('gaps');
     setGapFillQueue(buildGapFillQueue(songs, categoryId, 'gaps', ratingScale));
@@ -441,6 +450,15 @@ export default function App() {
 
   function handleGapFillSkip() {
     setGapFillIndex((i) => i + 1);
+  }
+
+  async function handleGapFillMarkNotApplicable() {
+    if (!gapFillQueue || !gapFillSong) return;
+    await runOrAlertOffline(async () => {
+      const updated = await markCategoryNotApplicable(gapFillSong, gapFillQueue.categoryId);
+      applySongUpdate(updated);
+      setGapFillIndex((i) => i + 1);
+    });
   }
 
   function handleGapFillBack() {
@@ -621,6 +639,7 @@ export default function App() {
           canGoBack={gapFillIndex > 0}
           onCommit={handleGapFillCommit}
           onSkip={handleGapFillSkip}
+          onMarkNotApplicable={handleGapFillMarkNotApplicable}
           onBack={handleGapFillBack}
           onExit={handleGapFillExit}
         />
@@ -675,6 +694,7 @@ export default function App() {
           onToggleMemorized={(memorized) => handleTagEditorToggleMemorized(tagEditorSong.id, memorized)}
           onRate={(label) => handleTagEditorRate(tagEditorSong.id, label)}
           onDelete={() => handleDeleteSong(tagEditorSong.id)}
+          onClearNotApplicable={(categoryId) => handleClearNotApplicable(tagEditorSong, categoryId)}
         />
       )}
     </div>

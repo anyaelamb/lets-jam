@@ -19,6 +19,10 @@ function splitByTagged(songs: Song[], categoryId: string): { untagged: Song[]; t
   const untagged: Song[] = [];
   const tagged: Song[] = [];
   for (const song of songs) {
+    // Deliberately marked "doesn't apply" — the tag itself stays blank (for
+    // Filters), but Gap-Fill should stop offering it for this category
+    // entirely, in fill and review alike.
+    if ((song.notApplicableCategories ?? []).includes(categoryId)) continue;
     if (song.tags[categoryId] == null) untagged.push(song);
     else tagged.push(song);
   }

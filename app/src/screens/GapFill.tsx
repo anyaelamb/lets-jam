@@ -18,6 +18,7 @@ interface GapFillProps {
   canGoBack: boolean;
   onCommit: (value: TagValue | null) => void;
   onSkip: () => void;
+  onMarkNotApplicable: () => void;
   onBack: () => void;
   onExit: () => void;
 }
@@ -36,6 +37,7 @@ export default function GapFill({
   canGoBack,
   onCommit,
   onSkip,
+  onMarkNotApplicable,
   onBack,
   onExit,
 }: GapFillProps) {
@@ -131,6 +133,11 @@ export default function GapFill({
         <button type="button" className="btn btn-ghost" onClick={onSkip}>
           Skip
         </button>
+        {phase === 'fill' && !category.computed && (
+          <button type="button" className="btn btn-ghost" onClick={onMarkNotApplicable}>
+            Doesn't apply
+          </button>
+        )}
         <button type="button" className="btn btn-link" onClick={onExit}>
           Exit
         </button>
