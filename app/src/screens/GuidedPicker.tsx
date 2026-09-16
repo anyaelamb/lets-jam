@@ -39,14 +39,23 @@ export default function GuidedPicker({
     else onStepChange(step + 1);
   }
 
-  // With only two choices, picking one already fully narrows the category
-  // — selecting the other on top of it would just cancel back out to "no
-  // filter" (filtering is OR-within-category) — so there's nothing to gain
-  // by waiting for an explicit Next tap.
+  // Guided Picker is single-select-only (see CategoryPicker), so picking a
+  // value is always a single, complete decision for that category — same
+  // reasoning Gap-Fill already uses to auto-advance single-select categories.
   function handleFilterChange(f: CategoryFilter | undefined) {
     onFilterChange(category.id, f);
-    const madeASelection = category.type !== 'range' && options.length === 2 && !!f?.values?.length;
-    if (madeASelection) goNext();
+    const madeASelection = category.type !== 'range' && !!f?.values?.length;
+    if (!madeASelection) return;
+
+    const nextFilters = { ...filters };
+    if (f) nextFilters[category.id] = f;
+    else delete nextFilters[category.id];
+    const nextCount = filterSongs(songs, nextFilters, categories, includeUntagged).length;
+
+    // Narrow enough to just look at the results rather than keep narrowing
+    // through categories that likely won't change much at this point.
+    if (nextCount < 20) onShowResults();
+    else goNext();
   }
 
   return (
@@ -70,6 +79,7 @@ export default function GuidedPicker({
           filter={filters[category.id]}
           onChange={handleFilterChange}
           large
+          singleSelect
         />
         {category.type !== 'range' && (
           <button type="button" className="picker-skip" onClick={goNext}>

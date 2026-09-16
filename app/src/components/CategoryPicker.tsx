@@ -9,11 +9,21 @@ interface CategoryPickerProps {
   filter: CategoryFilter | undefined;
   onChange: (filter: CategoryFilter | undefined) => void;
   large?: boolean;
+  // Filters (Results screen) stays OR-within-category per the brief — this
+  // is only for Guided Picker, which restricts each step to one value at a
+  // time; multi-select filtering is still reachable via Filters.
+  singleSelect?: boolean;
 }
 
-// Filter-time picker: always OR-within-category regardless of the
-// category's edit-time type (single/multi/range) — see Tag System in the brief.
-export default function CategoryPicker({ category, options, bounds, filter, onChange, large }: CategoryPickerProps) {
+export default function CategoryPicker({
+  category,
+  options,
+  bounds,
+  filter,
+  onChange,
+  large,
+  singleSelect,
+}: CategoryPickerProps) {
   if (category.type === 'range') {
     const value = filter?.range ?? bounds;
     return <RangeSlider bounds={bounds} value={value} onChange={(range) => onChange({ range })} />;
@@ -25,6 +35,7 @@ export default function CategoryPicker({ category, options, bounds, filter, onCh
       options={options}
       selected={selected}
       layout={large ? 'stacked' : 'wrap'}
+      singleSelect={singleSelect}
       onChange={(values) => onChange(values.length ? { values } : undefined)}
     />
   );
