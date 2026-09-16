@@ -34,6 +34,21 @@ export default function GuidedPicker({
   const options = categoryValues(songs, category.id, ratingScale, category.values);
   const bounds = categoryBounds(songs, category.id);
 
+  function goNext() {
+    if (isLast) onShowResults();
+    else onStepChange(step + 1);
+  }
+
+  // With only two choices, picking one already fully narrows the category
+  // — selecting the other on top of it would just cancel back out to "no
+  // filter" (filtering is OR-within-category) — so there's nothing to gain
+  // by waiting for an explicit Next tap.
+  function handleFilterChange(f: CategoryFilter | undefined) {
+    onFilterChange(category.id, f);
+    const madeASelection = category.type !== 'range' && options.length === 2 && !!f?.values?.length;
+    if (madeASelection) goNext();
+  }
+
   return (
     <div className="screen picker">
       <div className="picker-header">
@@ -53,9 +68,14 @@ export default function GuidedPicker({
           options={options}
           bounds={bounds}
           filter={filters[category.id]}
-          onChange={(f) => onFilterChange(category.id, f)}
+          onChange={handleFilterChange}
           large
         />
+        {category.type !== 'range' && (
+          <button type="button" className="picker-skip" onClick={goNext}>
+            Skip
+          </button>
+        )}
       </div>
 
       <div className="picker-actions">
@@ -64,11 +84,7 @@ export default function GuidedPicker({
             Back
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => (isLast ? onShowResults() : onStepChange(step + 1))}
-        >
+        <button type="button" className="btn btn-primary" onClick={goNext}>
           {isLast ? 'Finish' : 'Next'}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onShowResults}>

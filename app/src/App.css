@@ -226,6 +226,21 @@
   overflow-y: auto;
 }
 
+.picker-skip {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  padding: 16px 20px;
+  font-size: 17px;
+  min-height: 54px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
 .picker-actions {
   display: flex;
   gap: 8px;
