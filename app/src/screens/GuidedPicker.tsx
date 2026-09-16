@@ -81,11 +81,9 @@ export default function GuidedPicker({
           large
           singleSelect
         />
-        {category.type !== 'range' && (
-          <button type="button" className="picker-skip" onClick={goNext}>
-            Skip
-          </button>
-        )}
+        <button type="button" className="picker-skip" onClick={goNext}>
+          Skip
+        </button>
       </div>
 
       <div className="picker-actions">
@@ -94,10 +92,7 @@ export default function GuidedPicker({
             Back
           </button>
         )}
-        <button type="button" className="btn btn-primary" onClick={goNext}>
-          {isLast ? 'Finish' : 'Next'}
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={onShowResults}>
+        <button type="button" className="btn btn-primary" onClick={onShowResults}>
           Show Results
         </button>
       </div>
