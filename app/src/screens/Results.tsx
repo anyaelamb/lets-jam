@@ -84,14 +84,16 @@ export default function Results({
         <p className="results-count">
           {songs.length} of {totalCount} songs
         </p>
-        <label className="staleness-toggle">
-          <input
-            type="checkbox"
-            checked={showStaleness}
-            onChange={(e) => onToggleStaleness(e.target.checked)}
-          />
-          Show staleness (memorized only)
-        </label>
+        {canEdit && (
+          <label className="staleness-toggle">
+            <input
+              type="checkbox"
+              checked={showStaleness}
+              onChange={(e) => onToggleStaleness(e.target.checked)}
+            />
+            Show staleness (memorized only)
+          </label>
+        )}
       </div>
 
       <ul className="song-list">
