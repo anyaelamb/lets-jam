@@ -108,6 +108,15 @@ export function loadCachedSnapshot() {
   return loadSnapshot();
 }
 
+// Both the admin and viewer passphrase pass RLS reads, so "categories came
+// back non-empty" (used to validate the passphrase itself) can't tell them
+// apart — this asks the database directly which one the current key is.
+export async function getAppKeyRole(): Promise<'admin' | 'viewer' | null> {
+  const { data, error } = await getSupabaseClient().rpc('app_key_role');
+  if (error) throw error;
+  return data as 'admin' | 'viewer' | null;
+}
+
 export async function getSongs(): Promise<Song[]> {
   const { data, error } = await getSupabaseClient().from('songs').select('*');
   if (error) throw error;

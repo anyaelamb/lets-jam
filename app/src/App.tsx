@@ -17,6 +17,7 @@ import {
   clearNotApplicable,
   deleteCategoryValue,
   deleteSong,
+  getAppKeyRole,
   getCategories,
   getRatingScale,
   getSongs,
@@ -72,6 +73,8 @@ const LAST_ACTIVE_KEY = 'songapp:lastActiveAt';
 const PASSPHRASE_KEY = 'songapp:passphrase';
 const PASSPHRASE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+type Role = 'admin' | 'viewer';
+
 function shouldResume(): boolean {
   try {
     const lastActive = localStorage.getItem(LAST_ACTIVE_KEY);
@@ -89,21 +92,23 @@ function markActive() {
   }
 }
 
-function loadStoredPassphrase(): string | null {
+function loadStoredPassphrase(): { value: string; role: Role } | null {
   try {
     const raw = localStorage.getItem(PASSPHRASE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { value: string; setAt: number };
+    const parsed = JSON.parse(raw) as { value: string; setAt: number; role?: Role };
     if (Date.now() - parsed.setAt > PASSPHRASE_TTL_MS) return null;
-    return parsed.value;
+    // Older stored sessions (before roles existed) never wrote a role —
+    // they were only ever the admin key, since viewer keys didn't exist yet.
+    return { value: parsed.value, role: parsed.role ?? 'admin' };
   } catch {
     return null;
   }
 }
 
-function storePassphrase(value: string) {
+function storePassphrase(value: string, role: Role) {
   try {
-    localStorage.setItem(PASSPHRASE_KEY, JSON.stringify({ value, setAt: Date.now() }));
+    localStorage.setItem(PASSPHRASE_KEY, JSON.stringify({ value, role, setAt: Date.now() }));
   } catch {
     // localStorage unavailable — the gate just shows again next load
   }
@@ -159,6 +164,8 @@ export default function App() {
   // the timestamp its own first run just wrote and always "resume".
   const [initialResume] = useState(shouldResume);
   const [initialPassphrase] = useState(loadStoredPassphrase);
+  const [role, setRole] = useState<Role>(initialPassphrase?.role ?? 'admin');
+  const canEdit = role === 'admin';
 
   async function loadAppData() {
     try {
@@ -193,7 +200,7 @@ export default function App() {
 
   useEffect(() => {
     if (initialPassphrase) {
-      initSupabaseClient(initialPassphrase);
+      initSupabaseClient(initialPassphrase.value);
       loadAppData();
     } else {
       setScreen('passphrase');
@@ -209,14 +216,20 @@ export default function App() {
   // data left over from a previous, different passphrase.
   async function handlePassphraseSubmit(passphrase: string): Promise<string | null> {
     initSupabaseClient(passphrase);
+    let resolvedRole: Role;
     try {
       const categoriesCheck = await getCategories();
       if (categoriesCheck.length === 0) return "That passphrase didn't work — try again.";
+      // Both keys pass the read check above — ask the database which one
+      // this actually is. Defaults to the more restrictive role if that
+      // somehow comes back unclear, rather than assuming admin.
+      resolvedRole = (await getAppKeyRole()) ?? 'viewer';
     } catch (err) {
       if (isNetworkError(err)) return "Can't verify right now — check your connection and try again.";
       return "That passphrase didn't work — try again.";
     }
-    storePassphrase(passphrase);
+    storePassphrase(passphrase, resolvedRole);
+    setRole(resolvedRole);
     await loadAppData();
     return null;
   }
@@ -339,7 +352,11 @@ export default function App() {
   }
 
   function handleSelectSong(song: Song) {
-    if (openUgOnTap) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
+    // A viewer has no rating screen to land on, and Settings (where the
+    // toggle below lives) is hidden for them — the link is the only useful
+    // thing a tap can do, so it always opens regardless of that preference.
+    if (canEdit ? openUgOnTap : true) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
+    if (!canEdit) return;
     setActiveSongId(song.id);
     goScreen('assessment');
   }
@@ -605,6 +622,7 @@ export default function App() {
           onStartOver={startGuidedPicker}
           onSelectSong={handleSelectSong}
           onOpenTagEditor={(song) => setTagEditorSongId(song.id)}
+          canEdit={canEdit}
         />
       )}
 

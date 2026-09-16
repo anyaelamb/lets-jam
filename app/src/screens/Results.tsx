@@ -16,6 +16,7 @@ interface ResultsProps {
   onStartOver: () => void;
   onSelectSong: (song: Song) => void;
   onOpenTagEditor: (song: Song) => void;
+  canEdit: boolean;
 }
 
 function filterLabel(category: Category, filter: CategoryFilter): string {
@@ -43,6 +44,7 @@ export default function Results({
   onStartOver,
   onSelectSong,
   onOpenTagEditor,
+  canEdit,
 }: ResultsProps) {
   const activeFilterLabels = categories
     .filter((c) => filters[c.id])
@@ -60,9 +62,11 @@ export default function Results({
         <button type="button" className="btn btn-ghost" onClick={onStartOver}>
           Start Over
         </button>
-        <button type="button" className="hamburger-button" onClick={onOpenSettings} aria-label="Settings">
-          ☰
-        </button>
+        {canEdit && (
+          <button type="button" className="hamburger-button" onClick={onOpenSettings} aria-label="Settings">
+            ☰
+          </button>
+        )}
       </div>
 
       {activeFilterLabels.length > 0 && (
@@ -107,14 +111,16 @@ export default function Results({
                   {staleness.text}
                 </span>
               )}
-              <button
-                type="button"
-                className="icon-button song-row-menu"
-                onClick={() => onOpenTagEditor(song)}
-                aria-label={`Edit tags for ${song.title}`}
-              >
-                ⋮
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="icon-button song-row-menu"
+                  onClick={() => onOpenTagEditor(song)}
+                  aria-label={`Edit tags for ${song.title}`}
+                >
+                  ⋮
+                </button>
+              )}
             </li>
           );
         })}
