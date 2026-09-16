@@ -268,6 +268,12 @@ export async function updateSongUrl(songId: string, url: string): Promise<Song> 
   return withComputedTags(mapSongRow(data));
 }
 
+export async function deleteSong(songId: string): Promise<Song[]> {
+  const { error } = await getSupabaseClient().from('songs').delete().eq('id', songId);
+  if (error) throw error;
+  return getSongs();
+}
+
 // --- Settings: category management ---
 
 export async function addCategory(name: string, type: CategoryType): Promise<Category[]> {

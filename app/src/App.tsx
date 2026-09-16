@@ -15,6 +15,7 @@ import {
   addRatingEntry,
   addSong,
   deleteCategoryValue,
+  deleteSong,
   getCategories,
   getRatingScale,
   getSongs,
@@ -106,6 +107,19 @@ function storePassphrase(value: string) {
   }
 }
 
+// Device-local UI preference, not song data — no need to sync it across
+// devices the way the brief requires for the actual library.
+const OPEN_UG_ON_TAP_KEY = 'songapp:openUgOnTap';
+
+function loadOpenUgOnTap(): boolean {
+  try {
+    const raw = localStorage.getItem(OPEN_UG_ON_TAP_KEY);
+    return raw == null ? true : raw === 'true';
+  } catch {
+    return true;
+  }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -122,6 +136,7 @@ export default function App() {
   const [tagEditorSongId, setTagEditorSongId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [openUgOnTap, setOpenUgOnTapState] = useState(loadOpenUgOnTap);
 
   const [gapFillQueue, setGapFillQueue] = useState<GapFillQueue | null>(null);
   const [gapFillIndex, setGapFillIndex] = useState(0);
@@ -311,9 +326,18 @@ export default function App() {
   }
 
   function handleSelectSong(song: Song) {
-    window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
+    if (openUgOnTap) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
     setActiveSongId(song.id);
     goScreen('assessment');
+  }
+
+  function handleToggleOpenUgOnTap(value: boolean) {
+    setOpenUgOnTapState(value);
+    try {
+      localStorage.setItem(OPEN_UG_ON_TAP_KEY, String(value));
+    } catch {
+      // localStorage unavailable — preference just won't survive a reload
+    }
   }
 
   async function handleRate(label: string) {
@@ -346,6 +370,34 @@ export default function App() {
     await runOrAlertOffline(async () => {
       const updated = await updateSongUrl(songId, url);
       applySongUpdate(updated);
+    });
+  }
+
+  // Rating/memorized from the tag editor use the same rateSong/setMemorized
+  // path as Assessment — same offline-queueing behavior — but stay on the
+  // modal instead of navigating to Results afterward.
+  async function handleTagEditorRate(songId: string, label: string) {
+    const updated = await rateSong(songId, label);
+    applySongUpdate(updated);
+    setPendingCount(pendingWriteCount());
+  }
+
+  async function handleTagEditorToggleMemorized(songId: string, memorized: boolean) {
+    const updated = await setMemorized(songId, memorized);
+    applySongUpdate(updated);
+    setPendingCount(pendingWriteCount());
+  }
+
+  async function handleDeleteSong(songId: string) {
+    await runOrAlertOffline(async () => {
+      setSongs(await deleteSong(songId));
+      setTagEditorSongId(null);
+      // The tag editor can be reached from Assessment via "Re-tag this
+      // song" — if that's the song just deleted, Assessment would be left
+      // rendering nothing (its song no longer exists), so land back on
+      // Results explicitly rather than leaving whatever screen was behind.
+      if (activeSongId === songId) setActiveSongId(null);
+      goScreen('results');
     });
   }
 
@@ -544,6 +596,8 @@ export default function App() {
           onRemoveRating={handleRemoveRating}
           onSelectSong={handleSelectSong}
           onOpenAddSong={() => goScreen('addsong')}
+          openUgOnTap={openUgOnTap}
+          onToggleOpenUgOnTap={handleToggleOpenUgOnTap}
         />
       )}
 
@@ -614,9 +668,13 @@ export default function App() {
           song={tagEditorSong}
           categories={categories}
           allSongs={songs}
+          ratingScale={ratingScale}
           onClose={() => setTagEditorSongId(null)}
           onUpdateTag={(categoryId, value) => handleUpdateTag(tagEditorSong.id, categoryId, value)}
           onUpdateUrl={(url) => handleUpdateUrl(tagEditorSong.id, url)}
+          onToggleMemorized={(memorized) => handleTagEditorToggleMemorized(tagEditorSong.id, memorized)}
+          onRate={(label) => handleTagEditorRate(tagEditorSong.id, label)}
+          onDelete={() => handleDeleteSong(tagEditorSong.id)}
         />
       )}
     </div>

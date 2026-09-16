@@ -67,6 +67,12 @@
   padding: 8px;
 }
 
+.btn-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .btn-large {
   font-size: 17px;
   padding: 16px 24px;

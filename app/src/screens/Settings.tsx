@@ -21,6 +21,8 @@ interface SettingsProps {
   onRemoveRating: (label: string) => void;
   onSelectSong: (song: Song) => void;
   onOpenAddSong: () => void;
+  openUgOnTap: boolean;
+  onToggleOpenUgOnTap: (value: boolean) => void;
 }
 
 const SONG_SEARCH_LIMIT = 20;
@@ -50,6 +52,8 @@ export default function Settings({
   onRemoveRating,
   onSelectSong,
   onOpenAddSong,
+  openUgOnTap,
+  onToggleOpenUgOnTap,
 }: SettingsProps) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [valuesModalCategoryId, setValuesModalCategoryId] = useState<string | null>(null);
@@ -117,6 +121,23 @@ export default function Settings({
         <button type="button" className="btn btn-primary" onClick={onOpenAddSong}>
           + Add Song
         </button>
+      </section>
+
+      <section className="settings-section">
+        <h2>Song List Behavior</h2>
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={openUgOnTap}
+            onChange={(e) => onToggleOpenUgOnTap(e.target.checked)}
+          />
+          Open the Ultimate Guitar link when tapping a song
+        </label>
+        <p className="modal-subtitle">
+          {openUgOnTap
+            ? 'Tapping a song opens its chords/lyrics and the rating screen at the same time.'
+            : 'Tapping a song opens only the rating screen — the link stays available there.'}
+        </p>
       </section>
 
       <section className="settings-section">
