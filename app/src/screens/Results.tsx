@@ -1,10 +1,13 @@
-import type { RatingScaleEntry, Song } from '../types';
+import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
 import { formatStaleness, stalenessDays } from '../lib/staleness';
 
 interface ResultsProps {
   songs: Song[];
   totalCount: number;
   ratingScale: RatingScaleEntry[];
+  categories: Category[];
+  filters: FilterState;
+  includeUntagged: boolean;
   showStaleness: boolean;
   onToggleStaleness: (next: boolean) => void;
   onOpenFilters: () => void;
@@ -15,10 +18,23 @@ interface ResultsProps {
   onOpenTagEditor: (song: Song) => void;
 }
 
+function filterLabel(category: Category, filter: CategoryFilter): string {
+  if (category.type === 'range' && filter.range) {
+    return `${category.name}: ${filter.range[0]}–${filter.range[1]}`;
+  }
+  if (filter.values && filter.values.length > 0) {
+    return `${category.name}: ${filter.values.join(', ')}`;
+  }
+  return category.name;
+}
+
 export default function Results({
   songs,
   totalCount,
   ratingScale,
+  categories,
+  filters,
+  includeUntagged,
   showStaleness,
   onToggleStaleness,
   onOpenFilters,
@@ -28,6 +44,10 @@ export default function Results({
   onSelectSong,
   onOpenTagEditor,
 }: ResultsProps) {
+  const activeFilterLabels = categories
+    .filter((c) => filters[c.id])
+    .map((c) => filterLabel(c, filters[c.id]));
+
   return (
     <div className="screen results">
       <div className="results-toolbar">
@@ -44,6 +64,17 @@ export default function Results({
           ☰
         </button>
       </div>
+
+      {activeFilterLabels.length > 0 && (
+        <button type="button" className="active-filters" onClick={onOpenFilters}>
+          {activeFilterLabels.map((label) => (
+            <span key={label} className="active-filter-chip">
+              {label}
+            </span>
+          ))}
+          {includeUntagged && <span className="active-filter-chip active-filter-chip-muted">+ untagged included</span>}
+        </button>
+      )}
 
       <div className="results-subbar">
         <p className="results-count">

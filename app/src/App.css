@@ -496,6 +496,33 @@
   color: var(--text);
 }
 
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.active-filter-chip {
+  border: 1px solid var(--border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.active-filter-chip-muted {
+  background: var(--chip-bg);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 .results-subbar {
   display: flex;
   align-items: center;

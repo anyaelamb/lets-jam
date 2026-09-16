@@ -583,6 +583,9 @@ export default function App() {
           songs={sortedSongs}
           totalCount={songs.length}
           ratingScale={ratingScale}
+          categories={categories}
+          filters={filters}
+          includeUntagged={includeUntagged}
           showStaleness={showStaleness}
           onToggleStaleness={handleToggleStaleness}
           onOpenFilters={() => setShowFilters(true)}
