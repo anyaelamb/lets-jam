@@ -325,6 +325,7 @@ export default function App() {
       else delete nextFilters.memorized;
       return nextFilters;
     });
+    setSortCriteria([{ key: next ? 'staleness' : 'performance_confidence', direction: 'desc' }]);
   }
 
   function handleSelectSong(song: Song) {
