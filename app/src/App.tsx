@@ -131,7 +131,10 @@ export default function App() {
   const [filters, setFilters] = useState<FilterState>({});
   const [includeUntagged, setIncludeUntagged] = useState(false);
   const [showStaleness, setShowStaleness] = useState(false);
-  const [sortCriteria, setSortCriteria] = useState<SortCriterion[]>([{ key: 'staleness', direction: 'desc' }]);
+  const [sortCriteria, setSortCriteria] = useState<SortCriterion[]>([
+    { key: 'performance_confidence', direction: 'desc' },
+    { key: 'artist', direction: 'asc' },
+  ]);
   const [pickerStep, setPickerStep] = useState(0);
 
   const [activeSongId, setActiveSongId] = useState<string | null>(null);
