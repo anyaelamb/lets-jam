@@ -325,7 +325,14 @@ export default function App() {
       else delete nextFilters.memorized;
       return nextFilters;
     });
-    setSortCriteria([{ key: next ? 'staleness' : 'performance_confidence', direction: 'desc' }]);
+    setSortCriteria(
+      next
+        ? [{ key: 'staleness', direction: 'desc' }]
+        : [
+            { key: 'performance_confidence', direction: 'desc' },
+            { key: 'artist', direction: 'asc' },
+          ],
+    );
   }
 
   function handleSelectSong(song: Song) {
