@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Category, Song, TagValue } from '../types';
+import type { Category, RatingScaleEntry, Song, TagValue } from '../types';
 import type { GapFillMode } from '../lib/gapfill';
 import { categoryBounds, categoryValues } from '../lib/filtering';
 import CategoryValueEditor from '../components/CategoryValueEditor';
@@ -8,6 +8,7 @@ interface GapFillProps {
   category: Category;
   song: Song | null;
   allSongs: Song[];
+  ratingScale: RatingScaleEntry[];
   phase: 'fill' | 'review';
   segmentLabel: string;
   mode: GapFillMode;
@@ -25,6 +26,7 @@ export default function GapFill({
   category,
   song,
   allSongs,
+  ratingScale,
   phase,
   segmentLabel,
   mode,
@@ -75,7 +77,7 @@ export default function GapFill({
     );
   }
 
-  const options = categoryValues(allSongs, category.id, undefined, category.values);
+  const options = categoryValues(allSongs, category.id, ratingScale, category.values);
   const bounds = categoryBounds(allSongs, category.id);
 
   function handleChange(next: TagValue | null) {
@@ -110,7 +112,7 @@ export default function GapFill({
           bounds={bounds}
           value={pending ?? undefined}
           onChange={handleChange}
-          onAddValue={category.id === 'memorized' ? undefined : () => {}}
+          onAddValue={category.computed ? undefined : () => {}}
           large
         />
       </div>

@@ -220,7 +220,7 @@ export default function Settings({
                 Guided Picker
               </label>
 
-              {(!category.computed || category.id === 'memorized') && (
+              {(!category.computed || category.id === 'memorized' || category.id === 'performance_confidence') && (
                 <div className="settings-category-actions">
                   {!category.computed && (
                     <button

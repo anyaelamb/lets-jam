@@ -28,6 +28,15 @@ export function categoryValues(
   registeredValues?: string[],
 ): string[] {
   const set = new Set<string>(registeredValues ?? []);
+
+  // Performance/Memorization Confidence have no independent value list of
+  // their own to register (see Settings) — every rating-scale label is
+  // always a valid option, even for a song that's never been rated, so
+  // Gap-Fill has something to offer instead of an empty picker.
+  if (isConfidenceCategory(categoryId) && ratingScale) {
+    ratingScale.forEach((r) => set.add(r.label));
+  }
+
   for (const song of songs) {
     const v = song.tags[categoryId];
     if (typeof v === 'string') set.add(v);
@@ -110,7 +119,7 @@ function isConfidenceCategory(categoryId: string): boolean {
   return categoryId === 'performance_confidence' || categoryId === 'memorization_confidence';
 }
 
-function confidenceScore(song: Song, key: string, ratingScale: RatingScaleEntry[]): number | null {
+export function confidenceScore(song: Song, key: string, ratingScale: RatingScaleEntry[]): number | null {
   const value = song.tags[key];
   if (typeof value !== 'string') return null;
   const idx = ratingScale.findIndex((r) => r.label === value);

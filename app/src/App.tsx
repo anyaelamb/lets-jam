@@ -351,7 +351,7 @@ export default function App() {
 
   function startGapFill(categoryId: string) {
     setGapFillMode('gaps');
-    setGapFillQueue(buildGapFillQueue(songs, categoryId, 'gaps'));
+    setGapFillQueue(buildGapFillQueue(songs, categoryId, 'gaps', ratingScale));
     setGapFillIndex(0);
     goScreen('gapfill');
   }
@@ -359,15 +359,26 @@ export default function App() {
   function handleGapFillModeChange(mode: GapFillMode) {
     if (!gapFillQueue) return;
     setGapFillMode(mode);
-    setGapFillQueue(buildGapFillQueue(songs, gapFillQueue.categoryId, mode));
+    setGapFillQueue(buildGapFillQueue(songs, gapFillQueue.categoryId, mode, ratingScale));
     setGapFillIndex(0);
   }
 
   async function handleGapFillCommit(value: TagValue | null) {
     if (!gapFillQueue || !gapFillSong) return;
-    // "Memorized" is backed by the real memorized boolean, not a raw tag —
-    // withComputedTags regenerates tags.memorized from it on every read, so
-    // writing through updateSongTag would just get silently overwritten.
+    // "Memorized" is backed by the real memorized boolean, and Performance
+    // Confidence by lastRatingLabel — withComputedTags regenerates both
+    // tags on every read, so writing through updateSongTag would just get
+    // silently overwritten. Establishing a Performance Confidence this way
+    // is the same act as rating the song, without requiring the song
+    // actually be played first.
+    if (gapFillQueue.categoryId === 'performance_confidence') {
+      if (value == null) return; // no "un-rate" action — treat as a no-op rather than guess
+      const updated = await rateSong(gapFillSong.id, value as string);
+      applySongUpdate(updated);
+      setPendingCount(pendingWriteCount());
+      setGapFillIndex((i) => i + 1);
+      return;
+    }
     const updated =
       gapFillQueue.categoryId === 'memorized'
         ? await setMemorized(gapFillSong.id, value === 'Memorized')
@@ -546,6 +557,7 @@ export default function App() {
           category={gapFillCategory}
           song={gapFillSong}
           allSongs={songs}
+          ratingScale={ratingScale}
           phase={gapFillPosition.phase}
           segmentLabel={gapFillPosition.segmentLabel}
           mode={gapFillMode}
