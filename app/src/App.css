@@ -437,10 +437,16 @@
 
 .results-toolbar {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.results-toolbar .btn {
+.results-toolbar-row {
+  display: flex;
+  gap: 8px;
+}
+
+.results-toolbar-row .btn {
   flex: 1;
 }
 

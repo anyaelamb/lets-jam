@@ -83,87 +83,96 @@ export default function Results({
   return (
     <div className="screen results">
       <div className="results-toolbar">
-        <button type="button" className="btn btn-ghost" onClick={onOpenFilters}>
-          Filters
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={onOpenSort}>
-          Sort
-        </button>
-        <div className="start-over-wrap" ref={startOverRef}>
-          <button type="button" className="btn btn-ghost" onClick={() => setShowStartOverMenu((v) => !v)}>
-            Find Songs
-          </button>
-          {showStartOverMenu && (
-            <div className="dropdown-menu">
-              <button
-                type="button"
-                className="dropdown-menu-item"
-                onClick={() => {
-                  setShowStartOverMenu(false);
-                  onStartGuidedPicker();
-                }}
-              >
-                Guided Picker
-              </button>
-              <button
-                type="button"
-                className="dropdown-menu-item"
-                onClick={() => {
-                  setShowStartOverMenu(false);
-                  onStartGenrePicker();
-                }}
-              >
-                Genre Picker
-              </button>
-              <button
-                type="button"
-                className="dropdown-menu-item"
-                onClick={() => {
-                  setShowStartOverMenu(false);
-                  onStartScatterPicker();
-                }}
-              >
-                Scatter Picker
-              </button>
-            </div>
-          )}
-        </div>
-        {canEdit && (
-          <div className="hamburger-wrap" ref={hamburgerRef}>
+        <div className="results-toolbar-row">
+          <div className="start-over-wrap" ref={startOverRef}>
             <button
               type="button"
-              className="hamburger-button"
-              onClick={() => setShowMenu((v) => !v)}
-              aria-label="Menu"
+              className="btn btn-primary btn-large"
+              onClick={() => setShowStartOverMenu((v) => !v)}
             >
-              ☰
+              Find Songs
             </button>
-            {showMenu && (
-              <div className="dropdown-menu dropdown-menu-right">
+            {showStartOverMenu && (
+              <div className="dropdown-menu">
                 <button
                   type="button"
                   className="dropdown-menu-item"
                   onClick={() => {
-                    setShowMenu(false);
-                    onOpenSettings();
+                    setShowStartOverMenu(false);
+                    onStartGuidedPicker();
                   }}
                 >
-                  Settings
+                  Guided Picker
                 </button>
                 <button
                   type="button"
                   className="dropdown-menu-item"
                   onClick={() => {
-                    setShowMenu(false);
-                    onOpenQueue();
+                    setShowStartOverMenu(false);
+                    onStartGenrePicker();
                   }}
                 >
-                  Song Queue{queue.length > 0 ? ` (${queue.length})` : ''}
+                  Genre Picker
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-menu-item"
+                  onClick={() => {
+                    setShowStartOverMenu(false);
+                    onStartScatterPicker();
+                  }}
+                >
+                  Scatter Picker
                 </button>
               </div>
             )}
           </div>
-        )}
+          {canEdit && (
+            <div className="hamburger-wrap" ref={hamburgerRef}>
+              <button
+                type="button"
+                className="hamburger-button"
+                onClick={() => setShowMenu((v) => !v)}
+                aria-label="Menu"
+              >
+                ☰
+              </button>
+              {showMenu && (
+                <div className="dropdown-menu dropdown-menu-right">
+                  <button
+                    type="button"
+                    className="dropdown-menu-item"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onOpenSettings();
+                    }}
+                  >
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    className="dropdown-menu-item"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onOpenQueue();
+                    }}
+                  >
+                    Song Queue{queue.length > 0 ? ` (${queue.length})` : ''}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="results-toolbar-row">
+          <button type="button" className="btn btn-ghost btn-small" onClick={onOpenFilters}>
+            Filters
+          </button>
+          <button type="button" className="btn btn-ghost btn-small" onClick={onOpenSort}>
+            Sort
+          </button>
+        </div>
       </div>
 
       {activeFilterLabels.length > 0 && (
