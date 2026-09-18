@@ -126,6 +126,9 @@ function compareByKey(a: Song, b: Song, key: string, direction: 'asc' | 'desc', 
     if (as == null && bs == null) return 0;
     if (as == null) return nullsLast(true, direction);
     if (bs == null) return nullsLast(false, direction);
+    // Infinity - Infinity is NaN, not 0 — both never-played songs need to
+    // tie explicitly so a secondary sort key still gets a turn.
+    if (!isFinite(as) && !isFinite(bs)) return 0;
     return as - bs;
   }
   if (isConfidenceCategory(key)) {
