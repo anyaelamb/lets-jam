@@ -1,5 +1,5 @@
 import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
-import { categoryBounds, categoryValues } from '../lib/filtering';
+import { categoryValues } from '../lib/filtering';
 import CategoryPicker from '../components/CategoryPicker';
 
 interface FiltersPanelProps {
@@ -54,9 +54,7 @@ export default function FiltersPanel({
             <section key={category.id} className="tag-editor-row">
               <h3>{category.name}</h3>
               <CategoryPicker
-                category={category}
                 options={categoryValues(songs, category.id, ratingScale, category.values)}
-                bounds={categoryBounds(songs, category.id)}
                 filter={filters[category.id]}
                 onChange={(f) => onFilterChange(category.id, f)}
               />

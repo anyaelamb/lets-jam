@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Category, RatingScaleEntry, Song, TagValue } from '../types';
 import type { GapFillMode } from '../lib/gapfill';
-import { categoryBounds, categoryValues } from '../lib/filtering';
+import { categoryValues } from '../lib/filtering';
 import CategoryValueEditor from '../components/CategoryValueEditor';
 
 interface GapFillProps {
@@ -45,7 +45,6 @@ export default function GapFill({
   // reviewing already-tagged songs — see the brief's two-phase Gap-Fill spec.
   const startingValue = song && phase === 'review' ? (song.tags[category.id] ?? null) : null;
   const [pending, setPending] = useState<TagValue | null>(startingValue);
-  const autoAdvances = category.type === 'single';
 
   const orderToggle = (
     <div className="gapfill-order-toggle">
@@ -80,14 +79,12 @@ export default function GapFill({
   }
 
   const options = categoryValues(allSongs, category.id, ratingScale, category.values);
-  const bounds = categoryBounds(allSongs, category.id);
 
+  // Single-select is one tap = one complete decision, so it advances
+  // immediately rather than waiting on an explicit commit.
   function handleChange(next: TagValue | null) {
     setPending(next);
-    // Single-select is one tap = one complete decision, so it advances
-    // immediately. Multi-select and range need an explicit commit since
-    // picking is a multi-step or continuous interaction.
-    if (autoAdvances) onCommit(next);
+    onCommit(next);
   }
 
   return (
@@ -109,9 +106,7 @@ export default function GapFill({
 
       <div className="picker-control">
         <CategoryValueEditor
-          category={category}
           options={options}
-          bounds={bounds}
           value={pending ?? undefined}
           onChange={handleChange}
           onAddValue={category.computed ? undefined : () => {}}
@@ -123,11 +118,6 @@ export default function GapFill({
         {canGoBack && (
           <button type="button" className="btn btn-ghost" onClick={onBack}>
             Back
-          </button>
-        )}
-        {!autoAdvances && (
-          <button type="button" className="btn btn-primary" onClick={() => onCommit(pending)}>
-            Save &amp; Next
           </button>
         )}
         <button type="button" className="btn btn-ghost" onClick={onSkip}>

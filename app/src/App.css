@@ -433,91 +433,6 @@
   cursor: pointer;
 }
 
-/* Range slider */
-
-.range-slider {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.range-slider-track-wrap {
-  position: relative;
-  height: 40px;
-  display: flex;
-  align-items: center;
-}
-
-.range-slider-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-}
-
-.range-slider-track-fill {
-  position: absolute;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--accent);
-}
-
-.range-slider-input {
-  position: absolute;
-  left: 0;
-  right: 0;
-  width: 100%;
-  appearance: none;
-  background: transparent;
-  pointer-events: none;
-  margin: 0;
-}
-
-.range-slider-input::-webkit-slider-thumb {
-  appearance: none;
-  pointer-events: auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  cursor: pointer;
-  box-shadow: var(--shadow);
-}
-
-.range-slider-input::-moz-range-thumb {
-  pointer-events: auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  cursor: pointer;
-}
-
-.range-slider-input::-webkit-slider-runnable-track,
-.range-slider-input::-moz-range-track {
-  background: transparent;
-}
-
-.range-slider-numbers {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.range-slider-numbers input {
-  width: 70px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  text-align: center;
-}
-
 /* Results */
 
 .results-toolbar {
@@ -755,18 +670,8 @@
   font-size: 17px;
 }
 
-.song-row-queue-btn {
-  border: 1px solid var(--accent);
+.song-row-queue-btn-active {
   color: var(--accent);
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.song-row-queue-btn-active,
-.song-row-queue-btn-active:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast);
 }
 
 /* Modal (Filters / Sort / Tag editor) */
@@ -1159,14 +1064,6 @@
 .settings-add-name {
   flex: 1 1 160px;
   min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.settings-add-row select {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;

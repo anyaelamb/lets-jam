@@ -25,9 +25,6 @@ interface ResultsProps {
 }
 
 function filterLabel(category: Category, filter: CategoryFilter): string {
-  if (category.type === 'range' && filter.range) {
-    return `${category.name}: ${filter.range[0]}–${filter.range[1]}`;
-  }
   if (filter.values && filter.values.length > 0) {
     return `${category.name}: ${filter.values.join(', ')}`;
   }
@@ -75,7 +72,7 @@ export default function Results({
         </button>
         <div className="start-over-wrap">
           <button type="button" className="btn btn-ghost" onClick={() => setShowStartOverMenu((v) => !v)}>
-            Start Over
+            Find Some Songs
           </button>
           {showStartOverMenu && (
             <div className="dropdown-menu">

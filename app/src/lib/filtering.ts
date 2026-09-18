@@ -1,71 +1,58 @@
 import type { Category, FilterState, RatingScaleEntry, Song, SortCriterion } from '../types';
 import { stalenessDays } from './staleness';
 
-export function categoryBounds(songs: Song[], categoryId: string): [number, number] {
-  let min = Infinity;
-  let max = -Infinity;
-  for (const song of songs) {
-    const v = song.tags[categoryId];
-    if (Array.isArray(v) && v.length === 2 && typeof v[0] === 'number') {
-      min = Math.min(min, v[0]);
-      max = Math.max(max, v[1] as number);
-    }
-  }
-  if (!isFinite(min) || !isFinite(max)) return [0, 100];
-  return [min, max];
-}
-
 // The one category with its own dedicated picker entry point (the Genre
 // Picker) — locked against retirement in Settings, and always excluded
 // from the Scatter Picker regardless of its own toggle, since it already
 // has a faster, purpose-built way to get to it.
 export const GENRE_CATEGORY_ID = 'genre_2';
 
-// Fixed youngest-to-oldest order for Age Range's chips — matches how the
-// buckets were defined when the category switched from a numeric slider to
-// a multi-select. A custom bucket added later just sorts after these four
-// rather than breaking the ordering.
-const AGE_GROUP_ORDER = ['Kiddos', 'Gen Alpha', 'Millennials', 'GenX Plus'];
-
+// Registered values (category.values) define the display order — reordered
+// from Settings' Values screen. Anything found on a song but not yet
+// registered has no defined position, so it's appended alphabetically at
+// the end rather than dropped.
 export function categoryValues(
   songs: Song[],
   categoryId: string,
   ratingScale?: RatingScaleEntry[],
   registeredValues?: string[],
 ): string[] {
-  const set = new Set<string>(registeredValues ?? []);
-
   // Performance/Memorization Confidence have no independent value list of
   // their own to register (see Settings) — every rating-scale label is
   // always a valid option, even for a song that's never been rated, so
-  // Gap-Fill has something to offer instead of an empty picker.
+  // Gap-Fill has something to offer instead of an empty picker. They mirror
+  // rating-scale quality order, not registration order.
   if (isConfidenceCategory(categoryId) && ratingScale) {
+    const set = new Set<string>(registeredValues ?? []);
     ratingScale.forEach((r) => set.add(r.label));
+    for (const song of songs) {
+      const v = song.tags[categoryId];
+      if (typeof v === 'string') set.add(v);
+    }
+    const rank = new Map(ratingScale.map((r, i) => [r.label, i]));
+    return Array.from(set).sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
   }
 
-  for (const song of songs) {
-    const v = song.tags[categoryId];
-    if (typeof v === 'string') set.add(v);
-    else if (Array.isArray(v) && typeof v[0] === 'string') {
-      (v as string[]).forEach((x) => set.add(x));
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const v of registeredValues ?? []) {
+    if (!seen.has(v)) {
+      seen.add(v);
+      ordered.push(v);
     }
   }
-  const values = Array.from(set);
 
-  // Performance/Memorization Confidence mirror rating-scale quality, not
-  // alphabetical order — Great/Good/Passable/Learning reads naturally,
-  // "Good, Great, Learning, Passable" doesn't.
-  if (isConfidenceCategory(categoryId) && ratingScale) {
-    const rank = new Map(ratingScale.map((r, i) => [r.label, i]));
-    return values.sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
+  const extras: string[] = [];
+  for (const song of songs) {
+    const v = song.tags[categoryId];
+    if (typeof v === 'string' && !seen.has(v)) {
+      seen.add(v);
+      extras.push(v);
+    }
   }
+  extras.sort((a, b) => a.localeCompare(b));
 
-  if (categoryId === 'age_range') {
-    const rank = new Map(AGE_GROUP_ORDER.map((label, i) => [label, i]));
-    return values.sort((a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity));
-  }
-
-  return values.sort((a, b) => a.localeCompare(b));
+  return [...ordered, ...extras];
 }
 
 export function songMatchesFilters(
@@ -76,27 +63,13 @@ export function songMatchesFilters(
 ): boolean {
   for (const category of categories) {
     const f = filters[category.id];
-    if (!f) continue;
+    if (!f || !f.values || f.values.length === 0) continue;
     const tagValue = song.tags[category.id];
-
-    if (category.type === 'range') {
-      if (!f.range) continue;
-      if (tagValue == null) {
-        if (!includeUntagged) return false;
-        continue;
-      }
-      const [songMin, songMax] = tagValue as [number, number];
-      const [selMin, selMax] = f.range;
-      if (!(songMin <= selMax && songMax >= selMin)) return false;
-    } else {
-      if (!f.values || f.values.length === 0) continue;
-      if (tagValue == null) {
-        if (!includeUntagged) return false;
-        continue;
-      }
-      const songValues = Array.isArray(tagValue) ? (tagValue as string[]) : [tagValue as string];
-      if (!f.values.some((v) => songValues.includes(v))) return false;
+    if (tagValue == null) {
+      if (!includeUntagged) return false;
+      continue;
     }
+    if (!f.values.includes(tagValue)) return false;
   }
   return true;
 }
@@ -110,15 +83,8 @@ export function filterSongs(
   return songs.filter((s) => songMatchesFilters(s, filters, categories, includeUntagged));
 }
 
-function tagSortValue(song: Song, categoryId: string): string | number | null {
-  const v = song.tags[categoryId];
-  if (v == null) return null;
-  if (typeof v === 'string') return v;
-  if (Array.isArray(v)) {
-    if (typeof v[0] === 'number') return v[0] as number;
-    return (v as string[])[0] ?? null;
-  }
-  return null;
+function tagSortValue(song: Song, categoryId: string): string | null {
+  return song.tags[categoryId] ?? null;
 }
 
 function isConfidenceCategory(categoryId: string): boolean {
@@ -167,8 +133,7 @@ function compareByKey(a: Song, b: Song, key: string, direction: 'asc' | 'desc', 
   if (av == null && bv == null) return 0;
   if (av == null) return nullsLast(true, direction);
   if (bv == null) return nullsLast(false, direction);
-  if (typeof av === 'number' && typeof bv === 'number') return av - bv;
-  return String(av).localeCompare(String(bv));
+  return av.localeCompare(bv);
 }
 
 export function sortSongs(songs: Song[], criteria: SortCriterion[], ratingScale: RatingScaleEntry[]): Song[] {

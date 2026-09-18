@@ -1,5 +1,5 @@
 import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
-import { categoryBounds, categoryValues, filterSongs } from '../lib/filtering';
+import { categoryValues, filterSongs } from '../lib/filtering';
 import CategoryPicker from '../components/CategoryPicker';
 
 interface GuidedPickerProps {
@@ -32,7 +32,6 @@ export default function GuidedPicker({
   if (!category) return null;
 
   const options = categoryValues(songs, category.id, ratingScale, category.values);
-  const bounds = categoryBounds(songs, category.id);
 
   function goNext() {
     if (isLast) onShowResults();
@@ -44,7 +43,7 @@ export default function GuidedPicker({
   // reasoning Gap-Fill already uses to auto-advance single-select categories.
   function handleFilterChange(f: CategoryFilter | undefined) {
     onFilterChange(category.id, f);
-    const madeASelection = category.type !== 'range' && !!f?.values?.length;
+    const madeASelection = !!f?.values?.length;
     if (!madeASelection) return;
 
     const nextFilters = { ...filters };
@@ -73,9 +72,7 @@ export default function GuidedPicker({
 
       <div className="picker-control">
         <CategoryPicker
-          category={category}
           options={options}
-          bounds={bounds}
           filter={filters[category.id]}
           onChange={handleFilterChange}
           large

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   Category,
   CategoryFilter,
-  CategoryType,
   FilterState,
   RatingScaleEntry,
   Song,
@@ -29,6 +28,7 @@ import {
   renameCategory,
   renameCategoryValue,
   reorderCategories,
+  reorderCategoryValues,
   retireCategory,
   setCategoryGuidedPickerEnabled,
   setCategoryScatterPickerEnabled,
@@ -352,9 +352,7 @@ export default function App() {
   const guidedPickerCategories = categories.filter((c) => c.guidedPickerEnabled !== false);
   const genreCategory = categories.find((c) => c.id === GENRE_CATEGORY_ID) ?? null;
   const activePickerCategories = pickerMode === 'genre' ? (genreCategory ? [genreCategory] : []) : guidedPickerCategories;
-  const scatterPickerCategories = categories.filter(
-    (c) => c.scatterPickerEnabled && c.type !== 'range' && c.id !== GENRE_CATEGORY_ID,
-  );
+  const scatterPickerCategories = categories.filter((c) => c.scatterPickerEnabled && c.id !== GENRE_CATEGORY_ID);
 
   function applySongUpdate(updated: Song) {
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -578,8 +576,8 @@ export default function App() {
     goScreen('settings');
   }
 
-  async function handleAddCategory(name: string, type: CategoryType) {
-    await runOrAlertOffline(async () => setCategories(await addCategory(name, type)));
+  async function handleAddCategory(name: string) {
+    await runOrAlertOffline(async () => setCategories(await addCategory(name)));
   }
 
   async function handleRenameCategory(id: string, name: string) {
@@ -620,6 +618,10 @@ export default function App() {
 
   async function handleAddCategoryValue(categoryId: string, value: string) {
     await runOrAlertOffline(async () => setCategories(await addCategoryValue(categoryId, value)));
+  }
+
+  async function handleReorderValues(categoryId: string, orderedValues: string[]) {
+    await runOrAlertOffline(async () => setCategories(await reorderCategoryValues(categoryId, orderedValues)));
   }
 
   async function handleAddRating(label: string, intervalDays: number) {
@@ -740,6 +742,7 @@ export default function App() {
           onRenameValue={handleRenameValue}
           onDeleteValue={handleDeleteValue}
           onAddValue={handleAddCategoryValue}
+          onReorderValue={handleReorderValues}
           onStartGapFill={startGapFill}
           onAddRating={handleAddRating}
           onUpdateRating={handleUpdateRating}

@@ -1,5 +1,5 @@
 import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
-import { categoryBounds, categoryValues, filterSongs } from '../lib/filtering';
+import { categoryValues, filterSongs } from '../lib/filtering';
 import CategoryPicker from '../components/CategoryPicker';
 
 interface ScatterPickerProps {
@@ -56,9 +56,7 @@ export default function ScatterPicker({
           <section key={category.id} className="scatter-cluster">
             <h3 className="scatter-cluster-title">{category.name}</h3>
             <CategoryPicker
-              category={category}
               options={categoryValues(songs, category.id, ratingScale, category.values)}
-              bounds={categoryBounds(songs, category.id)}
               filter={filters[category.id]}
               onChange={(f) => handleFilterChange(category.id, f)}
             />

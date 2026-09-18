@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Category, CategoryType, RatingScaleEntry, Song } from '../types';
+import type { Category, RatingScaleEntry, Song } from '../types';
 import { GENRE_CATEGORY_ID } from '../lib/filtering';
 import ManageValues from './ManageValues';
 
@@ -8,7 +8,7 @@ interface SettingsProps {
   songs: Song[];
   ratingScale: RatingScaleEntry[];
   onBack: () => void;
-  onAddCategory: (name: string, type: CategoryType) => void;
+  onAddCategory: (name: string) => void;
   onRenameCategory: (id: string, name: string) => void;
   onRetireCategory: (id: string) => void;
   onReorderCategories: (orderedIds: string[]) => void;
@@ -17,6 +17,7 @@ interface SettingsProps {
   onRenameValue: (categoryId: string, oldValue: string, newValue: string) => void;
   onDeleteValue: (categoryId: string, value: string) => void;
   onAddValue: (categoryId: string, value: string) => void;
+  onReorderValue: (categoryId: string, orderedValues: string[]) => void;
   onStartGapFill: (categoryId: string) => void;
   onAddRating: (label: string, intervalDays: number) => void;
   onUpdateRating: (oldLabel: string, next: RatingScaleEntry) => void;
@@ -28,12 +29,6 @@ interface SettingsProps {
 }
 
 const SONG_SEARCH_LIMIT = 20;
-
-function typeLabel(type: CategoryType): string {
-  if (type === 'single') return 'Single-select';
-  if (type === 'multi') return 'Multi-select';
-  return 'Range';
-}
 
 export default function Settings({
   categories,
@@ -49,6 +44,7 @@ export default function Settings({
   onRenameValue,
   onDeleteValue,
   onAddValue,
+  onReorderValue,
   onStartGapFill,
   onAddRating,
   onUpdateRating,
@@ -61,7 +57,6 @@ export default function Settings({
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [valuesModalCategoryId, setValuesModalCategoryId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryType, setNewCategoryType] = useState<CategoryType>('single');
   const [newRatingLabel, setNewRatingLabel] = useState('');
   const [newRatingInterval, setNewRatingInterval] = useState('');
   const [songQuery, setSongQuery] = useState('');
@@ -86,9 +81,8 @@ export default function Settings({
   function handleAddCategory() {
     const name = newCategoryName.trim();
     if (!name) return;
-    onAddCategory(name, newCategoryType);
+    onAddCategory(name);
     setNewCategoryName('');
-    setNewCategoryType('single');
   }
 
   function handleAddRating() {
@@ -230,9 +224,9 @@ export default function Settings({
                     {category.name}
                   </button>
                 )}
-                <span className="settings-category-type">
-                  {category.computed && category.id !== 'memorized' ? 'Computed' : typeLabel(category.type)}
-                </span>
+                {category.computed && category.id !== 'memorized' && (
+                  <span className="settings-category-type">Computed</span>
+                )}
               </div>
 
               <label className="settings-toggle">
@@ -244,7 +238,7 @@ export default function Settings({
                 Guided Picker
               </label>
 
-              {category.type !== 'range' && category.id !== GENRE_CATEGORY_ID && (
+              {category.id !== GENRE_CATEGORY_ID && (
                 <label className="settings-toggle">
                   <input
                     type="checkbox"
@@ -296,11 +290,6 @@ export default function Settings({
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
           />
-          <select value={newCategoryType} onChange={(e) => setNewCategoryType(e.target.value as CategoryType)}>
-            <option value="single">Single-select</option>
-            <option value="multi">Multi-select</option>
-            <option value="range">Range</option>
-          </select>
           <button type="button" className="btn btn-primary" onClick={handleAddCategory}>
             Add
           </button>
@@ -380,6 +369,7 @@ export default function Settings({
           onRename={(oldValue, newValue) => onRenameValue(valuesModalCategory.id, oldValue, newValue)}
           onDelete={(value) => onDeleteValue(valuesModalCategory.id, value)}
           onAdd={(value) => onAddValue(valuesModalCategory.id, value)}
+          onReorder={(orderedValues) => onReorderValue(valuesModalCategory.id, orderedValues)}
           onClose={() => setValuesModalCategoryId(null)}
         />
       )}

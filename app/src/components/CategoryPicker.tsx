@@ -1,11 +1,8 @@
-import type { Category, CategoryFilter } from '../types';
+import type { CategoryFilter } from '../types';
 import ChipGroup from './ChipGroup';
-import RangeSlider from './RangeSlider';
 
 interface CategoryPickerProps {
-  category: Category;
   options: string[];
-  bounds: [number, number];
   filter: CategoryFilter | undefined;
   onChange: (filter: CategoryFilter | undefined) => void;
   large?: boolean;
@@ -15,20 +12,7 @@ interface CategoryPickerProps {
   singleSelect?: boolean;
 }
 
-export default function CategoryPicker({
-  category,
-  options,
-  bounds,
-  filter,
-  onChange,
-  large,
-  singleSelect,
-}: CategoryPickerProps) {
-  if (category.type === 'range') {
-    const value = filter?.range ?? bounds;
-    return <RangeSlider bounds={bounds} value={value} onChange={(range) => onChange({ range })} />;
-  }
-
+export default function CategoryPicker({ options, filter, onChange, large, singleSelect }: CategoryPickerProps) {
   const selected = filter?.values ?? [];
   return (
     <ChipGroup

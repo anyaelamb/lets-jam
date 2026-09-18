@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Category, Song, TagValue } from '../types';
-import { categoryBounds, categoryValues } from '../lib/filtering';
+import { categoryValues } from '../lib/filtering';
 import CategoryValueEditor from '../components/CategoryValueEditor';
 
 interface AddSongProps {
@@ -92,9 +92,7 @@ export default function AddSong({ categories, songs, onSave, onCancel }: AddSong
         <section key={category.id} className="tag-editor-row">
           <h3>{category.name}</h3>
           <CategoryValueEditor
-            category={category}
             options={categoryValues(songs, category.id, undefined, category.values)}
-            bounds={categoryBounds(songs, category.id)}
             value={tags[category.id]}
             onChange={(value) => setTag(category.id, value)}
             onAddValue={() => {}}

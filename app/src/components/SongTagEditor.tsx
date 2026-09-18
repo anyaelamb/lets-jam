@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Category, RatingScaleEntry, Song, TagValue } from '../types';
-import { categoryBounds, categoryValues } from '../lib/filtering';
+import { categoryValues } from '../lib/filtering';
 import CategoryValueEditor from './CategoryValueEditor';
 import ChipGroup from './ChipGroup';
 
@@ -110,9 +110,7 @@ export default function SongTagEditor({
                   </p>
                 )}
                 <CategoryValueEditor
-                  category={category}
                   options={categoryValues(allSongs, category.id, undefined, category.values)}
-                  bounds={categoryBounds(allSongs, category.id)}
                   value={song.tags[category.id]}
                   onChange={(value) => onUpdateTag(category.id, value)}
                   onAddValue={() => {}}

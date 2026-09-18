@@ -8,19 +8,25 @@ interface ManageValuesProps {
   onRename: (oldValue: string, newValue: string) => void;
   onDelete: (value: string) => void;
   onAdd: (value: string) => void;
+  onReorder: (orderedValues: string[]) => void;
   onClose: () => void;
 }
 
 function songsWithValue(songs: Song[], categoryId: string, value: string): number {
-  return songs.filter((song) => {
-    const v = song.tags[categoryId];
-    return v === value || (Array.isArray(v) && (v as string[]).includes(value));
-  }).length;
+  return songs.filter((song) => song.tags[categoryId] === value).length;
 }
 
-export default function ManageValues({ category, songs, onRename, onDelete, onAdd, onClose }: ManageValuesProps) {
+export default function ManageValues({ category, songs, onRename, onDelete, onAdd, onReorder, onClose }: ManageValuesProps) {
   const values = categoryValues(songs, category.id, undefined, category.values);
   const [newValue, setNewValue] = useState('');
+
+  function move(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= values.length) return;
+    const next = [...values];
+    [next[index], next[target]] = [next[target], next[index]];
+    onReorder(next);
+  }
 
   function handleDelete(value: string) {
     const count = songsWithValue(songs, category.id, value);
@@ -50,8 +56,19 @@ export default function ManageValues({ category, songs, onRename, onDelete, onAd
           {values.length === 0 && (
             <p className="modal-subtitle">No values yet — add one below, or tag a song with a new value.</p>
           )}
-          {values.map((value) => (
-            <ValueRow key={value} value={value} onRename={onRename} onDelete={handleDelete} />
+          {values.length > 1 && (
+            <p className="modal-subtitle">Reorder with the arrows to control how these show up everywhere.</p>
+          )}
+          {values.map((value, index) => (
+            <ValueRow
+              key={value}
+              value={value}
+              index={index}
+              total={values.length}
+              onRename={onRename}
+              onDelete={handleDelete}
+              onMove={move}
+            />
           ))}
           <div className="settings-add-row">
             <input
@@ -80,17 +97,41 @@ export default function ManageValues({ category, songs, onRename, onDelete, onAd
 
 function ValueRow({
   value,
+  index,
+  total,
   onRename,
   onDelete,
+  onMove,
 }: {
   value: string;
+  index: number;
+  total: number;
   onRename: (oldValue: string, newValue: string) => void;
   onDelete: (value: string) => void;
+  onMove: (index: number, delta: number) => void;
 }) {
   const [draft, setDraft] = useState(value);
 
   return (
     <div className="value-row">
+      <div className="settings-reorder">
+        <button
+          type="button"
+          disabled={index === 0}
+          onClick={() => onMove(index, -1)}
+          aria-label={`Move ${value} up`}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          disabled={index === total - 1}
+          onClick={() => onMove(index, 1)}
+          aria-label={`Move ${value} down`}
+        >
+          ↓
+        </button>
+      </div>
       <input
         className="value-row-input"
         value={draft}

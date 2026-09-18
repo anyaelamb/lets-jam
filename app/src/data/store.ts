@@ -1,4 +1,4 @@
-import type { Category, CategoryType, RatingScaleEntry, Song, TagValue } from '../types';
+import type { Category, RatingScaleEntry, Song, TagValue } from '../types';
 import { getSupabaseClient } from './supabaseClient';
 import {
   enqueuePendingWrite,
@@ -34,7 +34,6 @@ function mapCategoryRow(row: any): Category {
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
     computed: row.computed,
     guidedPickerEnabled: row.guided_picker_enabled,
     scatterPickerEnabled: row.scatter_picker_enabled,
@@ -310,7 +309,7 @@ export async function deleteSong(songId: string): Promise<Song[]> {
 
 // --- Settings: category management ---
 
-export async function addCategory(name: string, type: CategoryType): Promise<Category[]> {
+export async function addCategory(name: string): Promise<Category[]> {
   const client = getSupabaseClient();
   const { data: existing, error: fetchError } = await client.from('categories').select('id, sort_order');
   if (fetchError) throw fetchError;
@@ -322,10 +321,13 @@ export async function addCategory(name: string, type: CategoryType): Promise<Cat
   const nextSortOrder =
     existing.length > 0 ? Math.max(...existing.map((c: { sort_order: number }) => c.sort_order)) + 1 : 0;
 
+  // "type" is a legacy required DB column (single/multi/range) from before
+  // every category was single-select — always 'single' now, and no longer
+  // modeled on the app side.
   const { error: insertError } = await client.from('categories').insert({
     id,
     name: name.trim(),
-    type,
+    type: 'single',
     computed: false,
     guided_picker_enabled: true,
     sort_order: nextSortOrder,
@@ -399,6 +401,19 @@ export async function addCategoryValue(categoryId: string, value: string): Promi
   return getCategories();
 }
 
+// Overwrites the registered value list's order outright (unlike
+// addCategoryValue/updateRegisteredValues, which only ever append or filter)
+// — categoryValues() treats this array's order as the display order
+// everywhere, so this is the one write path a plain reorder needs.
+export async function reorderCategoryValues(categoryId: string, orderedValues: string[]): Promise<Category[]> {
+  const { error } = await getSupabaseClient()
+    .from('categories')
+    .update({ values: orderedValues })
+    .eq('id', categoryId);
+  if (error) throw error;
+  return getCategories();
+}
+
 async function updateRegisteredValues(
   client: ReturnType<typeof getSupabaseClient>,
   categoryId: string,
@@ -428,17 +443,8 @@ export async function renameCategoryValue(
 
   const writes = data.flatMap((row: { id: string; tags: Record<string, TagValue> }) => {
     const v = row.tags?.[categoryId];
-    if (v == null) return [];
-    if (typeof v === 'string' && v === oldValue) {
-      return [client.rpc('update_song_tag', { p_song_id: row.id, p_category_id: categoryId, p_value: newValue })];
-    }
-    if (Array.isArray(v) && (v as string[]).includes(oldValue)) {
-      const nextValues = Array.from(new Set((v as string[]).map((x) => (x === oldValue ? newValue : x))));
-      return [
-        client.rpc('update_song_tag', { p_song_id: row.id, p_category_id: categoryId, p_value: nextValues }),
-      ];
-    }
-    return [];
+    if (v !== oldValue) return [];
+    return [client.rpc('update_song_tag', { p_song_id: row.id, p_category_id: categoryId, p_value: newValue })];
   });
 
   const results = await Promise.all(writes);
@@ -463,17 +469,8 @@ export async function deleteCategoryValue(
 
   const writes = data.flatMap((row: { id: string; tags: Record<string, TagValue> }) => {
     const v = row.tags?.[categoryId];
-    if (v == null) return [];
-    if (typeof v === 'string' && v === value) {
-      return [client.rpc('delete_song_tag', { p_song_id: row.id, p_category_id: categoryId })];
-    }
-    if (Array.isArray(v) && (v as string[]).includes(value)) {
-      const nextValues = (v as string[]).filter((x) => x !== value);
-      return nextValues.length === 0
-        ? [client.rpc('delete_song_tag', { p_song_id: row.id, p_category_id: categoryId })]
-        : [client.rpc('update_song_tag', { p_song_id: row.id, p_category_id: categoryId, p_value: nextValues })];
-    }
-    return [];
+    if (v !== value) return [];
+    return [client.rpc('delete_song_tag', { p_song_id: row.id, p_category_id: categoryId })];
   });
 
   const results = await Promise.all(writes);

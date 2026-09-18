@@ -1,9 +1,6 @@
-export type CategoryType = 'single' | 'multi' | 'range';
-
 export interface Category {
   id: string;
   name: string;
-  type: CategoryType;
   // Derived at read time (like Staleness) rather than manually tagged —
   // excluded from the tag editor, but filterable/sortable like any category.
   computed?: boolean;
@@ -20,7 +17,7 @@ export interface Category {
   values?: string[];
 }
 
-export type TagValue = string | string[] | [number, number];
+export type TagValue = string;
 
 export interface RatingScaleEntry {
   label: string;
@@ -45,7 +42,6 @@ export interface Song {
 
 export interface CategoryFilter {
   values?: string[];
-  range?: [number, number];
 }
 
 export type FilterState = Record<string, CategoryFilter>;
