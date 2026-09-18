@@ -174,7 +174,7 @@ export default function Settings({
         <h2>Tag Categories</h2>
         <p className="modal-subtitle">
           Order drives the Guided Picker sequence. Toggle a category off to skip it there without removing it from
-          Filters or Sort. Scatter Picker is a separate, opt-in screen — toggle categories into it independently.
+          Filters or Sort. Filter Picker is a separate, opt-in screen — toggle categories into it independently.
         </p>
 
         <div className="settings-category-list">
@@ -245,7 +245,7 @@ export default function Settings({
                     checked={category.scatterPickerEnabled === true}
                     onChange={(e) => onToggleScatterPicker(category.id, e.target.checked)}
                   />
-                  Scatter Picker
+                  Filter Picker
                 </label>
               )}
 

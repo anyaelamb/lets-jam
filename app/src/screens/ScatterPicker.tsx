@@ -44,7 +44,7 @@ export default function ScatterPicker({
       </button>
 
       <div className="picker-header">
-        <h2>Scatter Picker</h2>
+        <h2>Filter Picker</h2>
         <div className="match-count">
           <strong>{matchCount}</strong> song{matchCount === 1 ? '' : 's'} match
         </div>
@@ -64,7 +64,7 @@ export default function ScatterPicker({
         ))}
         {categories.length === 0 && (
           <p className="chip-group-empty">
-            No categories are opted into the Scatter Picker yet — turn some on from Settings.
+            No categories are opted into the Filter Picker yet — turn some on from Settings.
           </p>
         )}
       </div>

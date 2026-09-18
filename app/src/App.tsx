@@ -46,6 +46,7 @@ import Splash from './screens/Splash';
 import PassphraseGate from './screens/PassphraseGate';
 import GuidedPicker from './screens/GuidedPicker';
 import ScatterPicker from './screens/ScatterPicker';
+import PickerChooser from './screens/PickerChooser';
 import Results from './screens/Results';
 import FiltersPanel from './screens/FiltersPanel';
 import SortPanel from './screens/SortPanel';
@@ -63,6 +64,7 @@ type Screen =
   | 'splash'
   | 'picker'
   | 'scatter'
+  | 'pickerChooser'
   | 'results'
   | 'assessment'
   | 'gapfill'
@@ -703,6 +705,15 @@ export default function App() {
         />
       )}
 
+      {screen === 'pickerChooser' && (
+        <PickerChooser
+          onBack={() => goScreen('results')}
+          onStartGuidedPicker={startGuidedPicker}
+          onStartGenrePicker={startGenrePicker}
+          onStartScatterPicker={startScatterPicker}
+        />
+      )}
+
       {screen === 'results' && (
         <Results
           songs={sortedSongs}
@@ -717,9 +728,7 @@ export default function App() {
           onOpenSort={() => setShowSort(true)}
           onOpenSettings={() => goScreen('settings')}
           onOpenQueue={() => goScreen('queue')}
-          onStartGuidedPicker={startGuidedPicker}
-          onStartGenrePicker={startGenrePicker}
-          onStartScatterPicker={startScatterPicker}
+          onOpenPickerChooser={() => goScreen('pickerChooser')}
           onToggleQueue={handleToggleQueue}
           onOpenAssessment={(song) => handleSelectSong(song, 'results')}
           queue={queue}
