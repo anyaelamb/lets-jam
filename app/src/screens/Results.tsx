@@ -1,6 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
 import { formatStaleness, stalenessDays } from '../lib/staleness';
+
+// Closes an open dropdown on a click anywhere outside its wrapper element.
+// Takes the useState setter directly (rather than a callback) so its
+// identity is stable across renders and the listener isn't re-attached on
+// every render while the dropdown is open.
+function useClickOutside(active: boolean, setActive: (value: boolean) => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!active) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setActive(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [active, setActive]);
+  return ref;
+}
 
 interface ResultsProps {
   songs: Song[];
@@ -54,6 +71,8 @@ export default function Results({
 }: ResultsProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showStartOverMenu, setShowStartOverMenu] = useState(false);
+  const hamburgerRef = useClickOutside(showMenu, setShowMenu);
+  const startOverRef = useClickOutside(showStartOverMenu, setShowStartOverMenu);
 
   const activeFilterLabels = categories
     .filter((c) => filters[c.id])
@@ -70,7 +89,7 @@ export default function Results({
         <button type="button" className="btn btn-ghost" onClick={onOpenSort}>
           Sort
         </button>
-        <div className="start-over-wrap">
+        <div className="start-over-wrap" ref={startOverRef}>
           <button type="button" className="btn btn-ghost" onClick={() => setShowStartOverMenu((v) => !v)}>
             Find Some Songs
           </button>
@@ -110,7 +129,7 @@ export default function Results({
           )}
         </div>
         {canEdit && (
-          <div className="hamburger-wrap">
+          <div className="hamburger-wrap" ref={hamburgerRef}>
             <button
               type="button"
               className="hamburger-button"
