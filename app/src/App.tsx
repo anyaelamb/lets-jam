@@ -40,7 +40,7 @@ import {
 } from './data/store';
 import { isNetworkError } from './data/offlineCache';
 import { initSupabaseClient } from './data/supabaseClient';
-import { filterSongs, GENRE_CATEGORY_ID, sortSongs } from './lib/filtering';
+import { filterSongs, GENRE_CATEGORY_ID, shuffledSample, sortSongs } from './lib/filtering';
 import { buildGapFillQueue, gapFillAt, gapFillTotal, type GapFillMode, type GapFillQueue } from './lib/gapfill';
 import Splash from './screens/Splash';
 import PassphraseGate from './screens/PassphraseGate';
@@ -181,6 +181,10 @@ export default function App() {
   ]);
   const [pickerStep, setPickerStep] = useState(0);
   const [pickerMode, setPickerMode] = useState<PickerMode>('full');
+  // Song ids from the most recent "Random 10" pick — narrows the results
+  // list down to just these before the normal category filters apply, so
+  // Filters/Sort still work predictably on top of the random set.
+  const [randomTenIds, setRandomTenIds] = useState<string[] | null>(null);
 
   const [activeSongId, setActiveSongId] = useState<string | null>(null);
   const [activeSongOrigin, setActiveSongOrigin] = useState<AssessmentOrigin>('results');
@@ -332,10 +336,10 @@ export default function App() {
     setScreen(next);
   }
 
-  const filteredSongs = useMemo(
-    () => filterSongs(songs, filters, categories, includeUntagged),
-    [songs, filters, categories, includeUntagged],
-  );
+  const filteredSongs = useMemo(() => {
+    const scoped = randomTenIds ? songs.filter((s) => randomTenIds.includes(s.id)) : songs;
+    return filterSongs(scoped, filters, categories, includeUntagged);
+  }, [songs, filters, categories, includeUntagged, randomTenIds]);
   const sortedSongs = useMemo(
     () => sortSongs(filteredSongs, sortCriteria, ratingScale),
     [filteredSongs, sortCriteria, ratingScale],
@@ -363,6 +367,7 @@ export default function App() {
   function startGuidedPicker() {
     setFilters({});
     setShowStaleness(false);
+    setRandomTenIds(null);
     setPickerMode('full');
     setPickerStep(0);
     goScreen('picker');
@@ -373,6 +378,7 @@ export default function App() {
   function startGenrePicker() {
     setFilters({});
     setShowStaleness(false);
+    setRandomTenIds(null);
     setPickerMode('genre');
     setPickerStep(0);
     goScreen('picker');
@@ -381,12 +387,25 @@ export default function App() {
   function startScatterPicker() {
     setFilters({});
     setShowStaleness(false);
+    setRandomTenIds(null);
     goScreen('scatter');
+  }
+
+  // Memorized songs are always "Great" Performance Confidence (see
+  // withComputedTags), so this is really one pool — songs you can already
+  // play well, whether that's from memory or off the chart.
+  function startRandomTen() {
+    const pool = songs.filter((s) => s.memorized || s.tags.performance_confidence === 'Great');
+    setFilters({});
+    setShowStaleness(false);
+    setRandomTenIds(shuffledSample(pool, 10).map((s) => s.id));
+    goScreen('results');
   }
 
   function showAllSongs() {
     setFilters({});
     setShowStaleness(false);
+    setRandomTenIds(null);
     goScreen('results');
   }
 
@@ -402,6 +421,7 @@ export default function App() {
   function handleClearFilters() {
     setFilters({});
     setShowStaleness(false);
+    setRandomTenIds(null);
   }
 
   // Staleness only applies to memorized songs, so showing it means showing
@@ -711,6 +731,7 @@ export default function App() {
           onStartGuidedPicker={startGuidedPicker}
           onStartGenrePicker={startGenrePicker}
           onStartScatterPicker={startScatterPicker}
+          onStartRandomTen={startRandomTen}
         />
       )}
 
@@ -733,6 +754,7 @@ export default function App() {
           onOpenAssessment={(song) => handleSelectSong(song, 'results')}
           queue={queue}
           canEdit={canEdit}
+          isRandomTen={randomTenIds !== null}
         />
       )}
 

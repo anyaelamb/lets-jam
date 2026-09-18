@@ -37,6 +37,7 @@ interface ResultsProps {
   onOpenAssessment: (song: Song) => void;
   queue: string[];
   canEdit: boolean;
+  isRandomTen: boolean;
 }
 
 function filterLabel(category: Category, filter: CategoryFilter): string {
@@ -64,13 +65,15 @@ export default function Results({
   onOpenAssessment,
   queue,
   canEdit,
+  isRandomTen,
 }: ResultsProps) {
   const [showMenu, setShowMenu] = useState(false);
   const hamburgerRef = useClickOutside(showMenu, setShowMenu);
 
-  const activeFilterLabels = categories
-    .filter((c) => filters[c.id])
-    .map((c) => filterLabel(c, filters[c.id]));
+  const activeFilterLabels = [
+    ...(isRandomTen ? ['Random 10'] : []),
+    ...categories.filter((c) => filters[c.id]).map((c) => filterLabel(c, filters[c.id])),
+  ];
 
   const queuedIds = useMemo(() => new Set(queue), [queue]);
 
@@ -80,7 +83,7 @@ export default function Results({
         <div className="results-toolbar-row">
           <div className="start-over-wrap">
             <button type="button" className="btn btn-primary btn-large" onClick={onOpenPickerChooser}>
-              Find Songs
+              Find More Songs
             </button>
           </div>
           {canEdit && (

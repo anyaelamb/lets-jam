@@ -3,6 +3,7 @@ interface PickerChooserProps {
   onStartGuidedPicker: () => void;
   onStartGenrePicker: () => void;
   onStartScatterPicker: () => void;
+  onStartRandomTen: () => void;
 }
 
 export default function PickerChooser({
@@ -10,6 +11,7 @@ export default function PickerChooser({
   onStartGuidedPicker,
   onStartGenrePicker,
   onStartScatterPicker,
+  onStartRandomTen,
 }: PickerChooserProps) {
   return (
     <div className="screen picker-chooser">
@@ -39,6 +41,12 @@ export default function PickerChooser({
           <span className="picker-chooser-option-desc">
             See every enabled category at once and tap anything that looks interesting, mixing and matching across
             all of them.
+          </span>
+        </button>
+        <button type="button" className="picker-chooser-option" onClick={onStartRandomTen}>
+          <span className="picker-chooser-option-title">Random 10</span>
+          <span className="picker-chooser-option-desc">
+            10 random songs from what you've already got down — memorized, or rated Great on a read-through.
           </span>
         </button>
       </div>

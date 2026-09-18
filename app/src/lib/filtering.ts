@@ -7,6 +7,17 @@ import { stalenessDays } from './staleness';
 // has a faster, purpose-built way to get to it.
 export const GENRE_CATEGORY_ID = 'genre_2';
 
+// Fisher-Yates — an unbiased shuffle, unlike sorting by Math.random() which
+// skews toward whatever the sort algorithm's comparison pattern favors.
+export function shuffledSample<T>(items: T[], count: number): T[] {
+  const pool = [...items];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
 // Registered values (category.values) define the display order — reordered
 // from Settings' Values screen. Anything found on a song but not yet
 // registered has no defined position, so it's appended alphabetically at
