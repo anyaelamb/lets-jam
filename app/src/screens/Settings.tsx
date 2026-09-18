@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Category, CategoryType, RatingScaleEntry, Song } from '../types';
+import { GENRE_CATEGORY_ID } from '../lib/filtering';
 import ManageValues from './ManageValues';
 
 interface SettingsProps {
@@ -12,6 +13,7 @@ interface SettingsProps {
   onRetireCategory: (id: string) => void;
   onReorderCategories: (orderedIds: string[]) => void;
   onToggleGuidedPicker: (id: string, enabled: boolean) => void;
+  onToggleScatterPicker: (id: string, enabled: boolean) => void;
   onRenameValue: (categoryId: string, oldValue: string, newValue: string) => void;
   onDeleteValue: (categoryId: string, value: string) => void;
   onAddValue: (categoryId: string, value: string) => void;
@@ -43,6 +45,7 @@ export default function Settings({
   onRetireCategory,
   onReorderCategories,
   onToggleGuidedPicker,
+  onToggleScatterPicker,
   onRenameValue,
   onDeleteValue,
   onAddValue,
@@ -177,7 +180,7 @@ export default function Settings({
         <h2>Tag Categories</h2>
         <p className="modal-subtitle">
           Order drives the Guided Picker sequence. Toggle a category off to skip it there without removing it from
-          Filters or Sort.
+          Filters or Sort. Scatter Picker is a separate, opt-in screen — toggle categories into it independently.
         </p>
 
         <div className="settings-category-list">
@@ -241,6 +244,17 @@ export default function Settings({
                 Guided Picker
               </label>
 
+              {category.type !== 'range' && category.id !== GENRE_CATEGORY_ID && (
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={category.scatterPickerEnabled === true}
+                    onChange={(e) => onToggleScatterPicker(category.id, e.target.checked)}
+                  />
+                  Scatter Picker
+                </label>
+              )}
+
               {(!category.computed || category.id === 'memorized' || category.id === 'performance_confidence') && (
                 <div className="settings-category-actions">
                   {!category.computed && (
@@ -259,7 +273,7 @@ export default function Settings({
                   >
                     Gap-Fill
                   </button>
-                  {!category.computed && (
+                  {!category.computed && category.id !== GENRE_CATEGORY_ID && (
                     <button
                       type="button"
                       className="icon-button"

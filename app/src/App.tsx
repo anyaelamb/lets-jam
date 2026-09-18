@@ -31,6 +31,7 @@ import {
   reorderCategories,
   retireCategory,
   setCategoryGuidedPickerEnabled,
+  setCategoryScatterPickerEnabled,
   setMemorized,
   syncPendingWrites,
   updateRatingEntry,
@@ -39,11 +40,12 @@ import {
 } from './data/store';
 import { isNetworkError } from './data/offlineCache';
 import { initSupabaseClient } from './data/supabaseClient';
-import { filterSongs, sortSongs } from './lib/filtering';
+import { filterSongs, GENRE_CATEGORY_ID, sortSongs } from './lib/filtering';
 import { buildGapFillQueue, gapFillAt, gapFillTotal, type GapFillMode, type GapFillQueue } from './lib/gapfill';
 import Splash from './screens/Splash';
 import PassphraseGate from './screens/PassphraseGate';
 import GuidedPicker from './screens/GuidedPicker';
+import ScatterPicker from './screens/ScatterPicker';
 import Results from './screens/Results';
 import FiltersPanel from './screens/FiltersPanel';
 import SortPanel from './screens/SortPanel';
@@ -60,12 +62,17 @@ type Screen =
   | 'passphrase'
   | 'splash'
   | 'picker'
+  | 'scatter'
   | 'results'
   | 'assessment'
   | 'gapfill'
   | 'settings'
   | 'addsong'
   | 'queue';
+
+// Which category set feeds the shared 'picker' screen — the full Guided
+// Picker sequence, or just the single-step Genre Picker shortcut.
+type PickerMode = 'full' | 'genre';
 
 // Where the Assessment screen should return to — Results (the default) or
 // the Song Queue, when a song was opened from there instead.
@@ -171,6 +178,7 @@ export default function App() {
     { key: 'artist', direction: 'asc' },
   ]);
   const [pickerStep, setPickerStep] = useState(0);
+  const [pickerMode, setPickerMode] = useState<PickerMode>('full');
 
   const [activeSongId, setActiveSongId] = useState<string | null>(null);
   const [activeSongOrigin, setActiveSongOrigin] = useState<AssessmentOrigin>('results');
@@ -342,6 +350,11 @@ export default function App() {
   const gapFillQueueTotal = gapFillQueue ? gapFillTotal(gapFillQueue) : 0;
 
   const guidedPickerCategories = categories.filter((c) => c.guidedPickerEnabled !== false);
+  const genreCategory = categories.find((c) => c.id === GENRE_CATEGORY_ID) ?? null;
+  const activePickerCategories = pickerMode === 'genre' ? (genreCategory ? [genreCategory] : []) : guidedPickerCategories;
+  const scatterPickerCategories = categories.filter(
+    (c) => c.scatterPickerEnabled && c.type !== 'range' && c.id !== GENRE_CATEGORY_ID,
+  );
 
   function applySongUpdate(updated: Song) {
     setSongs((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -350,8 +363,25 @@ export default function App() {
   function startGuidedPicker() {
     setFilters({});
     setShowStaleness(false);
+    setPickerMode('full');
     setPickerStep(0);
     goScreen('picker');
+  }
+
+  // Jumps straight to the single Genre step instead of making people skip
+  // through every other category first to reach it.
+  function startGenrePicker() {
+    setFilters({});
+    setShowStaleness(false);
+    setPickerMode('genre');
+    setPickerStep(0);
+    goScreen('picker');
+  }
+
+  function startScatterPicker() {
+    setFilters({});
+    setShowStaleness(false);
+    goScreen('scatter');
   }
 
   function showAllSongs() {
@@ -568,6 +598,10 @@ export default function App() {
     await runOrAlertOffline(async () => setCategories(await setCategoryGuidedPickerEnabled(id, enabled)));
   }
 
+  async function handleToggleScatterPicker(id: string, enabled: boolean) {
+    await runOrAlertOffline(async () => setCategories(await setCategoryScatterPickerEnabled(id, enabled)));
+  }
+
   async function handleRenameValue(categoryId: string, oldValue: string, newValue: string) {
     await runOrAlertOffline(async () => {
       const result = await renameCategoryValue(categoryId, oldValue, newValue);
@@ -642,7 +676,7 @@ export default function App() {
 
       {screen === 'picker' && (
         <GuidedPicker
-          categories={guidedPickerCategories}
+          categories={activePickerCategories}
           songs={songs}
           ratingScale={ratingScale}
           filters={filters}
@@ -651,6 +685,19 @@ export default function App() {
           onStepChange={setPickerStep}
           onFilterChange={handleFilterChange}
           onShowResults={() => goScreen('results')}
+        />
+      )}
+
+      {screen === 'scatter' && (
+        <ScatterPicker
+          categories={scatterPickerCategories}
+          songs={songs}
+          ratingScale={ratingScale}
+          filters={filters}
+          includeUntagged={includeUntagged}
+          onFilterChange={handleFilterChange}
+          onShowResults={() => goScreen('results')}
+          onBack={() => goScreen('results')}
         />
       )}
 
@@ -668,7 +715,9 @@ export default function App() {
           onOpenSort={() => setShowSort(true)}
           onOpenSettings={() => goScreen('settings')}
           onOpenQueue={() => goScreen('queue')}
-          onStartOver={startGuidedPicker}
+          onStartGuidedPicker={startGuidedPicker}
+          onStartGenrePicker={startGenrePicker}
+          onStartScatterPicker={startScatterPicker}
           onToggleQueue={handleToggleQueue}
           onOpenAssessment={(song) => handleSelectSong(song, 'results')}
           queue={queue}
@@ -687,6 +736,7 @@ export default function App() {
           onRetireCategory={handleRetireCategory}
           onReorderCategories={handleReorderCategories}
           onToggleGuidedPicker={handleToggleGuidedPicker}
+          onToggleScatterPicker={handleToggleScatterPicker}
           onRenameValue={handleRenameValue}
           onDeleteValue={handleDeleteValue}
           onAddValue={handleAddCategoryValue}

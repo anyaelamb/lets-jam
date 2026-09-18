@@ -15,6 +15,12 @@ export function categoryBounds(songs: Song[], categoryId: string): [number, numb
   return [min, max];
 }
 
+// The one category with its own dedicated picker entry point (the Genre
+// Picker) — locked against retirement in Settings, and always excluded
+// from the Scatter Picker regardless of its own toggle, since it already
+// has a faster, purpose-built way to get to it.
+export const GENRE_CATEGORY_ID = 'genre_2';
+
 // Fixed youngest-to-oldest order for Age Range's chips — matches how the
 // buckets were defined when the category switched from a numeric slider to
 // a multi-select. A custom bucket added later just sorts after these four

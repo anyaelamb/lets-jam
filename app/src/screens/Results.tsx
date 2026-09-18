@@ -15,7 +15,9 @@ interface ResultsProps {
   onOpenSort: () => void;
   onOpenSettings: () => void;
   onOpenQueue: () => void;
-  onStartOver: () => void;
+  onStartGuidedPicker: () => void;
+  onStartGenrePicker: () => void;
+  onStartScatterPicker: () => void;
   onToggleQueue: (song: Song) => void;
   onOpenAssessment: (song: Song) => void;
   queue: string[];
@@ -45,13 +47,16 @@ export default function Results({
   onOpenSort,
   onOpenSettings,
   onOpenQueue,
-  onStartOver,
+  onStartGuidedPicker,
+  onStartGenrePicker,
+  onStartScatterPicker,
   onToggleQueue,
   onOpenAssessment,
   queue,
   canEdit,
 }: ResultsProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showStartOverMenu, setShowStartOverMenu] = useState(false);
 
   const activeFilterLabels = categories
     .filter((c) => filters[c.id])
@@ -68,9 +73,45 @@ export default function Results({
         <button type="button" className="btn btn-ghost" onClick={onOpenSort}>
           Sort
         </button>
-        <button type="button" className="btn btn-ghost" onClick={onStartOver}>
-          Start Over
-        </button>
+        <div className="start-over-wrap">
+          <button type="button" className="btn btn-ghost" onClick={() => setShowStartOverMenu((v) => !v)}>
+            Start Over
+          </button>
+          {showStartOverMenu && (
+            <div className="dropdown-menu">
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={() => {
+                  setShowStartOverMenu(false);
+                  onStartGuidedPicker();
+                }}
+              >
+                Guided Picker
+              </button>
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={() => {
+                  setShowStartOverMenu(false);
+                  onStartGenrePicker();
+                }}
+              >
+                Genre Picker
+              </button>
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={() => {
+                  setShowStartOverMenu(false);
+                  onStartScatterPicker();
+                }}
+              >
+                Scatter Picker
+              </button>
+            </div>
+          )}
+        </div>
         {canEdit && (
           <div className="hamburger-wrap">
             <button
@@ -82,10 +123,10 @@ export default function Results({
               ☰
             </button>
             {showMenu && (
-              <div className="hamburger-menu">
+              <div className="dropdown-menu dropdown-menu-right">
                 <button
                   type="button"
-                  className="hamburger-menu-item"
+                  className="dropdown-menu-item"
                   onClick={() => {
                     setShowMenu(false);
                     onOpenSettings();
@@ -95,7 +136,7 @@ export default function Results({
                 </button>
                 <button
                   type="button"
-                  className="hamburger-menu-item"
+                  className="dropdown-menu-item"
                   onClick={() => {
                     setShowMenu(false);
                     onOpenQueue();

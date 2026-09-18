@@ -10,6 +10,10 @@ export interface Category {
   // Whether this category gets its own Guided Picker step. Defaults to true
   // when unset — still usable in Filters/Sort either way.
   guidedPickerEnabled?: boolean;
+  // Whether this category gets its own cluster on the Scatter Picker
+  // screen. Opt-in (defaults false) — unlike guidedPickerEnabled, an unset
+  // value here means "not shown."
+  scatterPickerEnabled?: boolean;
   // Values explicitly registered via Settings' "Values" screen — merged with
   // whatever songs currently carry, so a value can exist as a selectable
   // option before any song has been tagged with it yet.

@@ -37,6 +37,7 @@ function mapCategoryRow(row: any): Category {
     type: row.type,
     computed: row.computed,
     guidedPickerEnabled: row.guided_picker_enabled,
+    scatterPickerEnabled: row.scatter_picker_enabled,
     values: row.values ?? [],
   };
 }
@@ -363,6 +364,15 @@ export async function setCategoryGuidedPickerEnabled(categoryId: string, enabled
   const { error } = await getSupabaseClient()
     .from('categories')
     .update({ guided_picker_enabled: enabled })
+    .eq('id', categoryId);
+  if (error) throw error;
+  return getCategories();
+}
+
+export async function setCategoryScatterPickerEnabled(categoryId: string, enabled: boolean): Promise<Category[]> {
+  const { error } = await getSupabaseClient()
+    .from('categories')
+    .update({ scatter_picker_enabled: enabled })
     .eq('id', categoryId);
   if (error) throw error;
   return getCategories();
