@@ -25,29 +25,19 @@ export default function PickerChooser({
       <div className="picker-chooser-list">
         <button type="button" className="picker-chooser-option" onClick={onStartGuidedPicker}>
           <span className="picker-chooser-option-title">Guided Picker</span>
-          <span className="picker-chooser-option-desc">
-            One category at a time — pick a value and move to the next. Good when you're not sure yet what you're
-            looking for.
-          </span>
+          <span className="picker-chooser-option-desc">Answer one question at a time.</span>
         </button>
         <button type="button" className="picker-chooser-option" onClick={onStartGenrePicker}>
           <span className="picker-chooser-option-title">Genre Picker</span>
-          <span className="picker-chooser-option-desc">
-            Jump straight to picking a genre — for when you already know the style you want.
-          </span>
+          <span className="picker-chooser-option-desc">Jump straight to a genre.</span>
         </button>
         <button type="button" className="picker-chooser-option" onClick={onStartScatterPicker}>
           <span className="picker-chooser-option-title">Filter Picker</span>
-          <span className="picker-chooser-option-desc">
-            See every enabled category at once and tap anything that looks interesting, mixing and matching across
-            all of them.
-          </span>
+          <span className="picker-chooser-option-desc">See everything, tap what's interesting.</span>
         </button>
         <button type="button" className="picker-chooser-option" onClick={onStartRandomTen}>
           <span className="picker-chooser-option-title">Random 10</span>
-          <span className="picker-chooser-option-desc">
-            10 random songs from what you've already got down — memorized, or rated Great on a read-through.
-          </span>
+          <span className="picker-chooser-option-desc">10 random songs you already know.</span>
         </button>
       </div>
     </div>
