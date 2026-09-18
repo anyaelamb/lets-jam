@@ -91,7 +91,7 @@ export default function Results({
         </button>
         <div className="start-over-wrap" ref={startOverRef}>
           <button type="button" className="btn btn-ghost" onClick={() => setShowStartOverMenu((v) => !v)}>
-            Find Some Songs
+            Find Songs
           </button>
           {showStartOverMenu && (
             <div className="dropdown-menu">
