@@ -5,6 +5,10 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
+  /* iOS PWA status bar is translucent (see index.html) — content draws
+     under it by default, so push everything down by the device's actual
+     inset. 0px on anything without a safe area (most browsers). */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .screen {

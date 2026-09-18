@@ -57,9 +57,11 @@ export default function Assessment({
         Didn't perform
       </button>
 
-      {song.lastPlayedAt && (
+      {song.playCount > 0 && (
         <p className="assessment-meta">
-          Last played {new Date(song.lastPlayedAt).toLocaleDateString()} — rated {song.lastRatingLabel}
+          Played {song.playCount} time{song.playCount === 1 ? '' : 's'}
+          {song.lastPlayedAt &&
+            ` — last on ${new Date(song.lastPlayedAt).toLocaleDateString()}, rated ${song.lastRatingLabel}`}
         </p>
       )}
 

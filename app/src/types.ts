@@ -32,6 +32,7 @@ export interface Song {
   memorized: boolean;
   lastPlayedAt: string | null;
   lastRatingLabel: string | null;
+  playCount: number;
   tags: Record<string, TagValue>;
   // Category ids the song has been deliberately marked as not applying to
   // (from Gap-Fill's "Doesn't apply" option) — the tag itself stays blank

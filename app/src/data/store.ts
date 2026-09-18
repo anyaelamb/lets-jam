@@ -24,6 +24,7 @@ function mapSongRow(row: any): Song {
     memorized: row.memorized,
     lastPlayedAt: row.last_played_at,
     lastRatingLabel: row.last_rating_label,
+    playCount: row.play_count ?? 0,
     tags: row.tags ?? {},
     notApplicableCategories: row.not_applicable_categories ?? [],
   };
@@ -145,12 +146,13 @@ export async function getRatingScale(): Promise<RatingScaleEntry[]> {
 }
 
 async function performRate(songId: string, ratingLabel: string): Promise<Song> {
-  const { data, error } = await getSupabaseClient()
-    .from('songs')
-    .update({ last_played_at: new Date().toISOString(), last_rating_label: ratingLabel })
-    .eq('id', songId)
-    .select()
-    .single();
+  // Goes through the rate_song RPC (not a plain update) so play_count
+  // increments atomically server-side, regardless of which UI path — or
+  // how many concurrent calls — triggered the rating.
+  const { data, error } = await getSupabaseClient().rpc('rate_song', {
+    p_song_id: songId,
+    p_rating_label: ratingLabel,
+  });
   if (error) throw error;
   return withComputedTags(mapSongRow(data));
 }
@@ -182,9 +184,12 @@ export async function rateSong(songId: string, ratingLabel: string): Promise<Son
     return song;
   } catch (err) {
     if (!isNetworkError(err)) throw err;
+    const cached = loadSnapshot();
+    const existingPlayCount = cached?.songs.find((s) => s.id === songId)?.playCount ?? 0;
     const optimistic = optimisticSong(songId, {
       lastPlayedAt: new Date().toISOString(),
       lastRatingLabel: ratingLabel,
+      playCount: existingPlayCount + 1,
     });
     if (!optimistic) throw err;
     enqueuePendingWrite({ type: 'rate', songId, ratingLabel });
