@@ -213,6 +213,15 @@ export default function Results({
                 </span>
               )}
               <div className="song-row-actions">
+                <a
+                  className="icon-button song-row-ug"
+                  href={song.ultimateGuitarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open Ultimate Guitar tab for ${song.title}`}
+                >
+                  🎼
+                </a>
                 {canEdit && (
                   <button
                     type="button"
@@ -223,15 +232,6 @@ export default function Results({
                     ⋮
                   </button>
                 )}
-                <a
-                  className="icon-button song-row-ug"
-                  href={song.ultimateGuitarUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Open Ultimate Guitar tab for ${song.title}`}
-                >
-                  🎸
-                </a>
                 {canEdit && (
                   <button
                     type="button"
