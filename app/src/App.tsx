@@ -300,8 +300,8 @@ export default function App() {
     saveQueue(queue);
   }, [queue]);
 
-  function handleAddToQueue(song: Song) {
-    setQueue((prev) => (prev.includes(song.id) ? prev : [...prev, song.id]));
+  function handleToggleQueue(song: Song) {
+    setQueue((prev) => (prev.includes(song.id) ? prev.filter((id) => id !== song.id) : [...prev, song.id]));
   }
 
   function handleRemoveFromQueue(songId: string) {
@@ -393,17 +393,6 @@ export default function App() {
             { key: 'artist', direction: 'asc' },
           ],
     );
-  }
-
-  // Tapping a song row in Results/viewer mode. Admins queue the song for
-  // later; a viewer has no rating screen or queue to land on, so the UG
-  // link is the only useful thing a tap can do for them.
-  function handleQueueSong(song: Song) {
-    if (!canEdit) {
-      window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
-      return;
-    }
-    handleAddToQueue(song);
   }
 
   // Jumping straight to a song's rating screen — from the Results row menu,
@@ -680,7 +669,7 @@ export default function App() {
           onOpenSettings={() => goScreen('settings')}
           onOpenQueue={() => goScreen('queue')}
           onStartOver={startGuidedPicker}
-          onQueueSong={handleQueueSong}
+          onToggleQueue={handleToggleQueue}
           onOpenAssessment={(song) => handleSelectSong(song, 'results')}
           queue={queue}
           canEdit={canEdit}

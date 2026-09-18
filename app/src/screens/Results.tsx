@@ -16,7 +16,7 @@ interface ResultsProps {
   onOpenSettings: () => void;
   onOpenQueue: () => void;
   onStartOver: () => void;
-  onQueueSong: (song: Song) => void;
+  onToggleQueue: (song: Song) => void;
   onOpenAssessment: (song: Song) => void;
   queue: string[];
   canEdit: boolean;
@@ -46,7 +46,7 @@ export default function Results({
   onOpenSettings,
   onOpenQueue,
   onStartOver,
-  onQueueSong,
+  onToggleQueue,
   onOpenAssessment,
   queue,
   canEdit,
@@ -145,26 +145,47 @@ export default function Results({
           const isQueued = canEdit && queuedIds.has(song.id);
           return (
             <li key={song.id} className={`song-row ${isQueued ? 'song-row-queued' : ''}`}>
-              <button type="button" className="song-row-main" onClick={() => onQueueSong(song)}>
+              <div className="song-row-info">
                 <span className="song-title">{song.title}</span>
                 <span className="song-artist">{song.artist}</span>
                 {isQueued && <span className="queued-badge">Queued</span>}
-              </button>
+              </div>
               {staleness && (
                 <span className={`staleness-badge ${staleness.overdue ? 'staleness-overdue' : 'staleness-fresh'}`}>
                   {staleness.text}
                 </span>
               )}
-              {canEdit && (
-                <button
-                  type="button"
-                  className="icon-button song-row-menu"
-                  onClick={() => onOpenAssessment(song)}
-                  aria-label={`Rate ${song.title}`}
+              <div className="song-row-actions">
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="icon-button song-row-menu"
+                    onClick={() => onOpenAssessment(song)}
+                    aria-label={`Rate ${song.title}`}
+                  >
+                    ⋮
+                  </button>
+                )}
+                <a
+                  className="icon-button song-row-ug"
+                  href={song.ultimateGuitarUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open Ultimate Guitar tab for ${song.title}`}
                 >
-                  ⋮
-                </button>
-              )}
+                  🎸
+                </a>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className={`icon-button song-row-queue-btn ${isQueued ? 'song-row-queue-btn-active' : ''}`}
+                    onClick={() => onToggleQueue(song)}
+                    aria-label={isQueued ? `Remove ${song.title} from queue` : `Add ${song.title} to queue`}
+                  >
+                    {isQueued ? '✓' : '+'}
+                  </button>
+                )}
+              </div>
             </li>
           );
         })}

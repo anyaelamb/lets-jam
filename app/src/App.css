@@ -96,6 +96,9 @@
 }
 
 .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   font-size: 20px;
@@ -105,6 +108,7 @@
   min-width: 40px;
   min-height: 40px;
   border-radius: 8px;
+  text-decoration: none;
 }
 
 .icon-button:hover {
@@ -675,6 +679,18 @@
   justify-content: center;
 }
 
+.song-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 4px;
+  min-height: 44px;
+  justify-content: center;
+}
+
 .song-title {
   font-weight: 600;
   color: var(--text-h);
@@ -687,6 +703,31 @@
 
 .song-row-menu {
   flex-shrink: 0;
+}
+
+.song-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.song-row-ug {
+  font-size: 17px;
+}
+
+.song-row-queue-btn {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.song-row-queue-btn-active,
+.song-row-queue-btn-active:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
 }
 
 /* Modal (Filters / Sort / Tag editor) */
