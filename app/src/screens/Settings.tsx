@@ -131,12 +131,12 @@ export default function Settings({
             checked={openUgOnTap}
             onChange={(e) => onToggleOpenUgOnTap(e.target.checked)}
           />
-          Open the Ultimate Guitar link when tapping a song
+          Open the Ultimate Guitar link when opening a song's rating screen
         </label>
         <p className="modal-subtitle">
           {openUgOnTap
-            ? 'Tapping a song opens its chords/lyrics and the rating screen at the same time.'
-            : 'Tapping a song opens only the rating screen — the link stays available there.'}
+            ? "Opening a song's rating screen also opens its chords/lyrics."
+            : "Opening a song's rating screen only opens the rating screen — the link stays available there."}
         </p>
       </section>
 

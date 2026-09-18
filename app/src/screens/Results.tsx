@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { Category, CategoryFilter, FilterState, RatingScaleEntry, Song } from '../types';
 import { formatStaleness, stalenessDays } from '../lib/staleness';
 
@@ -13,9 +14,11 @@ interface ResultsProps {
   onOpenFilters: () => void;
   onOpenSort: () => void;
   onOpenSettings: () => void;
+  onOpenQueue: () => void;
   onStartOver: () => void;
-  onSelectSong: (song: Song) => void;
-  onOpenTagEditor: (song: Song) => void;
+  onQueueSong: (song: Song) => void;
+  onOpenAssessment: (song: Song) => void;
+  queue: string[];
   canEdit: boolean;
 }
 
@@ -41,14 +44,20 @@ export default function Results({
   onOpenFilters,
   onOpenSort,
   onOpenSettings,
+  onOpenQueue,
   onStartOver,
-  onSelectSong,
-  onOpenTagEditor,
+  onQueueSong,
+  onOpenAssessment,
+  queue,
   canEdit,
 }: ResultsProps) {
+  const [showMenu, setShowMenu] = useState(false);
+
   const activeFilterLabels = categories
     .filter((c) => filters[c.id])
     .map((c) => filterLabel(c, filters[c.id]));
+
+  const queuedIds = useMemo(() => new Set(queue), [queue]);
 
   return (
     <div className="screen results">
@@ -63,9 +72,40 @@ export default function Results({
           Start Over
         </button>
         {canEdit && (
-          <button type="button" className="hamburger-button" onClick={onOpenSettings} aria-label="Settings">
-            ☰
-          </button>
+          <div className="hamburger-wrap">
+            <button
+              type="button"
+              className="hamburger-button"
+              onClick={() => setShowMenu((v) => !v)}
+              aria-label="Menu"
+            >
+              ☰
+            </button>
+            {showMenu && (
+              <div className="hamburger-menu">
+                <button
+                  type="button"
+                  className="hamburger-menu-item"
+                  onClick={() => {
+                    setShowMenu(false);
+                    onOpenSettings();
+                  }}
+                >
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  className="hamburger-menu-item"
+                  onClick={() => {
+                    setShowMenu(false);
+                    onOpenQueue();
+                  }}
+                >
+                  Song Queue{queue.length > 0 ? ` (${queue.length})` : ''}
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -102,11 +142,13 @@ export default function Results({
           // you're reading it off the chart — so they just show no badge.
           const days = showStaleness ? stalenessDays(song, ratingScale) : null;
           const staleness = days != null ? formatStaleness(days) : null;
+          const isQueued = canEdit && queuedIds.has(song.id);
           return (
-            <li key={song.id} className="song-row">
-              <button type="button" className="song-row-main" onClick={() => onSelectSong(song)}>
+            <li key={song.id} className={`song-row ${isQueued ? 'song-row-queued' : ''}`}>
+              <button type="button" className="song-row-main" onClick={() => onQueueSong(song)}>
                 <span className="song-title">{song.title}</span>
                 <span className="song-artist">{song.artist}</span>
+                {isQueued && <span className="queued-badge">Queued</span>}
               </button>
               {staleness && (
                 <span className={`staleness-badge ${staleness.overdue ? 'staleness-overdue' : 'staleness-fresh'}`}>
@@ -117,8 +159,8 @@ export default function Results({
                 <button
                   type="button"
                   className="icon-button song-row-menu"
-                  onClick={() => onOpenTagEditor(song)}
-                  aria-label={`Edit tags for ${song.title}`}
+                  onClick={() => onOpenAssessment(song)}
+                  aria-label={`Rate ${song.title}`}
                 >
                   ⋮
                 </button>

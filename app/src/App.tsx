@@ -51,6 +51,7 @@ import Assessment from './screens/Assessment';
 import GapFill from './screens/GapFill';
 import Settings from './screens/Settings';
 import AddSong from './screens/AddSong';
+import SongQueue from './screens/SongQueue';
 import SongTagEditor from './components/SongTagEditor';
 import './App.css';
 
@@ -63,7 +64,12 @@ type Screen =
   | 'assessment'
   | 'gapfill'
   | 'settings'
-  | 'addsong';
+  | 'addsong'
+  | 'queue';
+
+// Where the Assessment screen should return to — Results (the default) or
+// the Song Queue, when a song was opened from there instead.
+type AssessmentOrigin = 'results' | 'queue';
 
 const IDLE_MS = 60 * 60 * 1000;
 const LAST_ACTIVE_KEY = 'songapp:lastActiveAt';
@@ -127,6 +133,30 @@ function loadOpenUgOnTap(): boolean {
   }
 }
 
+// The performance queue — song ids, in the order they were added. Purely a
+// device-local session aid (not song data, and admin-only), so it lives in
+// localStorage rather than the database like openUgOnTap above.
+const QUEUE_KEY = 'songapp:queue:v1';
+
+function loadQueue(): string[] {
+  try {
+    const raw = localStorage.getItem(QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveQueue(ids: string[]) {
+  try {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage unavailable — queue just won't survive a reload
+  }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('loading');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -143,10 +173,12 @@ export default function App() {
   const [pickerStep, setPickerStep] = useState(0);
 
   const [activeSongId, setActiveSongId] = useState<string | null>(null);
+  const [activeSongOrigin, setActiveSongOrigin] = useState<AssessmentOrigin>('results');
   const [tagEditorSongId, setTagEditorSongId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [openUgOnTap, setOpenUgOnTapState] = useState(loadOpenUgOnTap);
+  const [queue, setQueue] = useState<string[]>(loadQueue);
 
   const [gapFillQueue, setGapFillQueue] = useState<GapFillQueue | null>(null);
   const [gapFillIndex, setGapFillIndex] = useState(0);
@@ -264,6 +296,18 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    saveQueue(queue);
+  }, [queue]);
+
+  function handleAddToQueue(song: Song) {
+    setQueue((prev) => (prev.includes(song.id) ? prev : [...prev, song.id]));
+  }
+
+  function handleRemoveFromQueue(songId: string) {
+    setQueue((prev) => prev.filter((id) => id !== songId));
+  }
+
   async function runOrAlertOffline(action: () => Promise<void>) {
     try {
       await action();
@@ -351,13 +395,24 @@ export default function App() {
     );
   }
 
-  function handleSelectSong(song: Song) {
-    // A viewer has no rating screen to land on, and Settings (where the
-    // toggle below lives) is hidden for them — the link is the only useful
-    // thing a tap can do, so it always opens regardless of that preference.
-    if (canEdit ? openUgOnTap : true) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
-    if (!canEdit) return;
+  // Tapping a song row in Results/viewer mode. Admins queue the song for
+  // later; a viewer has no rating screen or queue to land on, so the UG
+  // link is the only useful thing a tap can do for them.
+  function handleQueueSong(song: Song) {
+    if (!canEdit) {
+      window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
+      return;
+    }
+    handleAddToQueue(song);
+  }
+
+  // Jumping straight to a song's rating screen — from the Results row menu,
+  // the Song Queue list, or Settings' "Find a Song" search. Only reachable
+  // in admin contexts (those entry points are all canEdit-gated in the UI).
+  function handleSelectSong(song: Song, origin: AssessmentOrigin = 'results') {
+    if (openUgOnTap) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
     setActiveSongId(song.id);
+    setActiveSongOrigin(origin);
     goScreen('assessment');
   }
 
@@ -375,11 +430,12 @@ export default function App() {
     const updated = await rateSong(activeSong.id, label);
     applySongUpdate(updated);
     setPendingCount(pendingWriteCount());
-    goScreen('results');
+    handleRemoveFromQueue(activeSong.id);
+    goScreen(activeSongOrigin);
   }
 
   function handleSkipAssessment() {
-    goScreen('results');
+    goScreen(activeSongOrigin);
   }
 
   async function handleToggleMemorized(memorized: boolean) {
@@ -410,6 +466,7 @@ export default function App() {
     const updated = await rateSong(songId, label);
     applySongUpdate(updated);
     setPendingCount(pendingWriteCount());
+    handleRemoveFromQueue(songId);
   }
 
   async function handleTagEditorToggleMemorized(songId: string, memorized: boolean) {
@@ -422,6 +479,7 @@ export default function App() {
     await runOrAlertOffline(async () => {
       setSongs(await deleteSong(songId));
       setTagEditorSongId(null);
+      handleRemoveFromQueue(songId);
       // The tag editor can be reached from Assessment via "Re-tag this
       // song" — if that's the song just deleted, Assessment would be left
       // rendering nothing (its song no longer exists), so land back on
@@ -465,6 +523,7 @@ export default function App() {
       const updated = await rateSong(gapFillSong.id, value as string);
       applySongUpdate(updated);
       setPendingCount(pendingWriteCount());
+      handleRemoveFromQueue(gapFillSong.id);
       setGapFillIndex((i) => i + 1);
       return;
     }
@@ -619,9 +678,11 @@ export default function App() {
           onOpenFilters={() => setShowFilters(true)}
           onOpenSort={() => setShowSort(true)}
           onOpenSettings={() => goScreen('settings')}
+          onOpenQueue={() => goScreen('queue')}
           onStartOver={startGuidedPicker}
-          onSelectSong={handleSelectSong}
-          onOpenTagEditor={(song) => setTagEditorSongId(song.id)}
+          onQueueSong={handleQueueSong}
+          onOpenAssessment={(song) => handleSelectSong(song, 'results')}
+          queue={queue}
           canEdit={canEdit}
         />
       )}
@@ -655,6 +716,15 @@ export default function App() {
         <AddSong categories={categories} songs={songs} onSave={handleAddSong} onCancel={() => goScreen('settings')} />
       )}
 
+      {screen === 'queue' && (
+        <SongQueue
+          songs={queue.map((id) => songs.find((s) => s.id === id)).filter((s): s is Song => !!s)}
+          onSelectSong={(song) => handleSelectSong(song, 'queue')}
+          onRemove={handleRemoveFromQueue}
+          onBack={() => goScreen('results')}
+        />
+      )}
+
       {screen === 'gapfill' && gapFillCategory && (
         <GapFill
           key={gapFillSong?.id ?? 'gapfill-done'}
@@ -685,7 +755,8 @@ export default function App() {
           onToggleMemorized={handleToggleMemorized}
           onSkip={handleSkipAssessment}
           onRetag={(song) => setTagEditorSongId(song.id)}
-          onBack={() => goScreen('results')}
+          onBack={() => goScreen(activeSongOrigin)}
+          backLabel={activeSongOrigin === 'queue' ? 'Back to queue' : 'Back to results'}
         />
       )}
 

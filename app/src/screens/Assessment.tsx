@@ -8,6 +8,7 @@ interface AssessmentProps {
   onSkip: () => void;
   onRetag: (song: Song) => void;
   onBack: () => void;
+  backLabel?: string;
 }
 
 export default function Assessment({
@@ -18,11 +19,12 @@ export default function Assessment({
   onSkip,
   onRetag,
   onBack,
+  backLabel = 'Back to results',
 }: AssessmentProps) {
   return (
     <div className="screen assessment">
       <button type="button" className="btn btn-ghost" onClick={onBack}>
-        ← Back to results
+        ← {backLabel}
       </button>
 
       <h2>{song.title}</h2>
