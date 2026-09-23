@@ -28,6 +28,9 @@ export function categoryValues(
   ratingScale?: RatingScaleEntry[],
   registeredValues?: string[],
 ): string[] {
+   if (categoryId === 'memorized') {
+    return ['Memorized', 'Not memorized'];
+  }
   // Performance/Memorization Confidence have no independent value list of
   // their own to register (see Settings) — every rating-scale label is
   // always a valid option, even for a song that's never been rated, so
