@@ -448,8 +448,10 @@ export default function App() {
   // Jumping straight to a song's rating screen — from the Results row menu,
   // the Song Queue list, or Settings' "Find a Song" search. Only reachable
   // in admin contexts (those entry points are all canEdit-gated in the UI).
-  function handleSelectSong(song: Song, origin: AssessmentOrigin = 'results') {
-    if (openUgOnTap) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
+  // Results rows pass openUg=false — they already have their own 🎼 link, so
+  // ⋮ just goes to the rating screen instead of burying it under a new tab.
+  function handleSelectSong(song: Song, origin: AssessmentOrigin = 'results', openUg = openUgOnTap) {
+    if (openUg) window.open(song.ultimateGuitarUrl, '_blank', 'noopener');
     setActiveSongId(song.id);
     setActiveSongOrigin(origin);
     goScreen('assessment');
@@ -751,7 +753,7 @@ export default function App() {
           onOpenQueue={() => goScreen('queue')}
           onOpenPickerChooser={() => goScreen('pickerChooser')}
           onToggleQueue={handleToggleQueue}
-          onOpenAssessment={(song) => handleSelectSong(song, 'results')}
+          onOpenAssessment={(song) => handleSelectSong(song, 'results', false)}
           queue={queue}
           canEdit={canEdit}
           isRandomTen={randomTenIds !== null}
