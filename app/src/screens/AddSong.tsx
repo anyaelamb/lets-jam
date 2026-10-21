@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Category, Song, TagValue } from '../types';
 import { categoryValues } from '../lib/filtering';
+import { parseUltimateGuitarUrl } from '../lib/ultimateGuitar';
 import CategoryValueEditor from '../components/CategoryValueEditor';
 
 interface AddSongProps {
@@ -19,6 +20,23 @@ export default function AddSong({ categories, songs, onSave, onCancel }: AddSong
   const [artist, setArtist] = useState('');
   const [url, setUrl] = useState('');
   const [tags, setTags] = useState<Record<string, TagValue>>({});
+  // The last values filled in from a link — a field only gets (re)filled
+  // while it's empty or still holds what was auto-filled, so pasting a
+  // different link updates it but anything typed by hand is left alone.
+  const [autoFilled, setAutoFilled] = useState({ title: '', artist: '' });
+
+  // Personal tabs (/user/tab/…) and bare-id links (/tab/2141159) have no
+  // names in the URL to read.
+  const isUnreadableUgLink = /ultimate-guitar\.com\//.test(url) && !parseUltimateGuitarUrl(url, songs);
+
+  function handleUrlChange(next: string) {
+    setUrl(next);
+    const parsed = parseUltimateGuitarUrl(next, songs);
+    if (!parsed) return;
+    if (!title.trim() || title === autoFilled.title) setTitle(parsed.title);
+    if (!artist.trim() || artist === autoFilled.artist) setArtist(parsed.artist);
+    setAutoFilled(parsed);
+  }
 
   const taggableCategories = categories.filter((c) => !c.computed);
 
@@ -58,6 +76,22 @@ export default function AddSong({ categories, songs, onSave, onCancel }: AddSong
       <h2>Add Song</h2>
 
       <section className="tag-editor-row">
+        <h3>Ultimate Guitar Link</h3>
+        <input
+          type="url"
+          className="url-input"
+          value={url}
+          placeholder="https://tabs.ultimate-guitar.com/…"
+          onChange={(e) => handleUrlChange(e.target.value)}
+        />
+        <p className="modal-subtitle">
+          {isUnreadableUgLink
+            ? "This link doesn't include the song name — type the title and artist below."
+            : 'Paste a link to fill in the title and artist automatically.'}
+        </p>
+      </section>
+
+      <section className="tag-editor-row">
         <h3>Title</h3>
         <input
           className="url-input"
@@ -74,17 +108,6 @@ export default function AddSong({ categories, songs, onSave, onCancel }: AddSong
           value={artist}
           placeholder="Artist"
           onChange={(e) => setArtist(e.target.value)}
-        />
-      </section>
-
-      <section className="tag-editor-row">
-        <h3>Ultimate Guitar Link</h3>
-        <input
-          type="url"
-          className="url-input"
-          value={url}
-          placeholder="https://tabs.ultimate-guitar.com/…"
-          onChange={(e) => setUrl(e.target.value)}
         />
       </section>
 
